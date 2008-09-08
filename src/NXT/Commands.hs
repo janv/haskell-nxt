@@ -36,8 +36,10 @@ littleEndianPair i = B.pack [lsb, msb]
 send :: Handle			-- ^ IO Handle
 	-> Message		-- ^ The Command to send, not including the Commandmode
 	-> CommandMode		-- ^ The CommandMode
-	-> IO (Maybe Message)	-- ^ Will Always return Nothing
-send handle cmd mode = sendReceive handle cmd mode False
+	-> IO ()
+send handle cmd mode = do
+	sendReceive handle cmd mode False
+	return ()
 
 -- | Receive Data from the NXT
 receive :: Handle
@@ -77,5 +79,5 @@ playtoneMsg freq duration = 0x03 `B.cons` (B.append freqWord durWord)
 				where freqWord = littleEndianPair freq
 				      durWord  = littleEndianPair duration
 
-playtone :: Handle -> Int -> Int -> IO (Maybe Message)
+playtone :: Handle -> Int -> Int -> IO ()
 playtone handle freq duration = send handle (playtoneMsg freq duration) Direct
