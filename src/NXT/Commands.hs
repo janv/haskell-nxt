@@ -9,6 +9,35 @@ import qualified Data.ByteString as B
 
 type Message = B.ByteString
 
+
+-- class Byte b where
+-- 	toSingleton :: b -> Message
+-- 	(+)
+-- 	-- Instanzen: Word8, Int, Char
+-- 	-- Methoden zur Verkettung
+-- 	-- Einfache Verkettung von Einzelwerten zu Arrays
+-- 	-- show instanz so dass die Hex-Werte angezeigt werden
+-- 	-- ByteString erzeugen aus Word8 Array
+
+-- instance B.ByteString [Byte]
+
+(+++) :: (Appendable a, Appendable b) => a -> b -> B.ByteString
+x +++ y = B.append (toBS x) (toBS y)
+
+class Appendable a where
+	toBS :: a -> B.ByteString
+
+instance Appendable B.ByteString where
+	toBS bs = bs
+-- instance Appendable Word8 where
+-- 	toBS n = B.singleton n
+-- instance Appendable [Char] where
+-- 	toBS s = B.pack (fmap (fromIntegral . ord) s)
+instance Integral a => Appendable [a] where
+	toBS l = B.pack (fmap fromIntegral l)
+-- instance Appendable Int where
+-- 	toBS i = B.singleton (fromIntegral i)
+
 ------------------------------------------------------------------------------
 -- Helper functions
 ------------------------------------------------------------------------------
@@ -64,8 +93,6 @@ sendReceive handle mode reply cmd = do
 	where message     = btPack cmdWithMode
 	      cmdWithMode = (commandType mode reply) `B.cons` cmd
 
--- TODO Einheitliche Rückgabe, leere Listen?
-
 ------------------------------------------------------------------------------
 -- Commands
 ------------------------------------------------------------------------------
@@ -90,7 +117,8 @@ send6 mode msg h = mapResult6 (send h mode) msg
 -- PLAYSOUNDFILE
 
 playtoneMsg :: Int -> Int -> Message
-playtoneMsg freq duration = 0x03 `B.cons` (B.append freqWord durWord)
+-- playtoneMsg freq duration = 0x03 `B.cons` (B.append freqWord durWord)
+playtoneMsg freq duration = [0x03] +++ freqWord  +++ durWord
 				where freqWord = littleEndianPair freq
 				      durWord  = littleEndianPair duration
 
