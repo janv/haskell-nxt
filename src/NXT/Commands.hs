@@ -34,11 +34,11 @@ littleEndianPair i = B.pack [lsb, msb]
 
 -- | Send a command to the NXT
 send :: Handle			-- ^ IO Handle
-	-> Message		-- ^ The Command to send, not including the Commandmode
 	-> CommandMode		-- ^ The CommandMode
+	-> Message		-- ^ The Command to send, not including the Commandmode
 	-> IO ()
-send handle cmd mode = do
-	sendReceive handle cmd mode False
+send handle mode cmd = do
+	sendReceive handle mode False cmd
 	return ()
 
 -- | Receive Data from the NXT
@@ -48,11 +48,11 @@ receive handle = B.hGetContents handle
 
 -- | Most Basic Communication function
 sendReceive :: Handle		-- ^ IO Handle
-	-> Message		-- ^ The Command to send, not including the Commandmode
 	-> CommandMode		-- ^ The CommandMode
 	-> Bool			-- ^ Indicate wether a reply is expected or not
+	-> Message		-- ^ The Command to send, not including the Commandmode
 	-> IO (Maybe Message)	-- ^ Just The reply or Nothing	
-sendReceive handle cmd mode reply = do
+sendReceive handle mode reply cmd = do
 	B.hPut handle message
 	-- putStrLn (show (B.unpack cmd))
 	-- putStrLn (show (B.unpack cmdWithMode))
@@ -70,6 +70,21 @@ sendReceive handle cmd mode reply = do
 -- Commands
 ------------------------------------------------------------------------------
 
+mapResult2 :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
+mapResult2 mapFun fun a b         = mapFun (fun a b)
+mapResult3 mapFun fun a b c       = mapFun (fun a b c)
+mapResult4 mapFun fun a b c d     = mapFun (fun a b c d)
+mapResult5 mapFun fun a b c d e   = mapFun (fun a b c d e)
+mapResult6 mapFun fun a b c d e f = mapFun (fun a b c d e f)
+
+send2 :: CommandMode -> (a -> b -> Message) -> Handle -> a -> b -> IO()
+send2 mode msg h = mapResult2 (send h mode) msg 
+send3 mode msg h = mapResult3 (send h mode) msg 
+send4 mode msg h = mapResult4 (send h mode) msg 
+send5 mode msg h = mapResult5 (send h mode) msg 
+send6 mode msg h = mapResult6 (send h mode) msg 
+
+
 -- STARTPROGRAM
 -- STOPPROGRAM
 -- PLAYSOUNDFILE
@@ -80,4 +95,4 @@ playtoneMsg freq duration = 0x03 `B.cons` (B.append freqWord durWord)
 				      durWord  = littleEndianPair duration
 
 playtone :: Handle -> Int -> Int -> IO ()
-playtone handle freq duration = send handle (playtoneMsg freq duration) Direct
+playtone = send2 Direct playtoneMsg
