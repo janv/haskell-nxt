@@ -18,27 +18,57 @@ module NXT.Codes where
 	sensor_4  = 0x03
         
 	-- motors
-	motor_a   = 0x00
-	motor_b   = 0x01
-	motor_c   = 0x02
-	motor_all = 0xFF
+	data OutputPort = MotorA | MotorB | MotorC | MotorAll
+	instance Enum OutputPort where
+		fromEnum MotorA   = 0x00
+		fromEnum MotorB   = 0x01
+		fromEnum MotorC   = 0x02
+		fromEnum MotorAll = 0xFF
+		toEnum   0x00     = MotorA
+		toEnum   0x01     = MotorB
+		toEnum   0x02     = MotorC
+		toEnum   0xFF     = MotorAll
         
 	-- output mode
-	coast     = 0x00 -- motor will rotate freely?
-	motoron   = 0x01 -- enables PWM power according to speed
-	brake     = 0x02 -- voltage is not allowed to float between PWM pulses, improves accuracy, uses more power
-	regulated = 0x04 -- required in conjunction with output regulation mode setting
+	data OutputMode = Coast | MotorOn | Brake | Regulated
+	instance Enum OutputMode where
+		fromEnum Coast     = 0x00
+		fromEnum MotorOn   = 0x01
+		fromEnum Brake     = 0x02
+		fromEnum Regulated = 0x04
+		toEnum   0x00      = Coast    
+		toEnum   0x01      = MotorOn  
+		toEnum   0x02      = Brake    
+		toEnum   0x04      = Regulated
 	
 	-- output regulation mode
-	regulation_mode_idle        = 0x00 -- disables regulation
-	regulation_mode_motor_speed = 0x01 -- auto adjust PWM duty cycle if motor is affected by physical load
-	regulation_mode_motor_sync  = 0x02 -- attempt to keep rotation in sync with another motor that has this set, also involves turn ratio
-        
+	data RegulationMode =
+		  RegulationIdle	-- ^ disables regulation
+		| MotorSpeed		-- ^ auto adjust PWM duty cycle if motor is affected by physical load
+		| MotorSync		-- ^ attempt to keep rotation in sync with another motor that has this set, also involves turn ratio
+	instance Enum RegulationMode where
+		fromEnum  RegulationIdle = 0x00
+		fromEnum  MotorSpeed     = 0x01
+		fromEnum  MotorSync      = 0x02
+		toEnum   0x00      = RegulationIdle
+		toEnum   0x01      = MotorSpeed    
+		toEnum   0x02      = MotorSync     
+
 	-- output run state
-	motor_run_state_idle        = 0x00 -- disables power to motor
-	motor_run_state_rampup      = 0x10 -- ramping to a new SPEED set-point that is greater than the current SPEED set-point
-	motor_run_state_running     = 0x20 -- enables power to motor
-	motor_run_state_rampdown    = 0x40 -- ramping to a new SPEED set-point that is less than the current SPEED set-point
+	data RunState =
+		  RunStateIdle	-- ^ disables power to motor
+		| RampUp        -- ^ ramping to a new SPEED set-point that is greater than the current SPEED set-point
+		| Running       -- ^ enables power to motor
+		| RampDown      -- ^ ramping to a new SPEED set-point that is less than the current SPEED set-point
+	instance Enum RunState where
+		fromEnum RunStateIdle = 0x00
+		fromEnum RampUp       = 0x10
+		fromEnum Running      = 0x20
+		fromEnum RampDown     = 0x40
+		toEnum   0x00      = RunStateIdle
+		toEnum   0x10      = RampUp      
+		toEnum   0x20      = Running     
+		toEnum   0x40      = RampDown    
 	
 	-- sensor type
 	no_sensor           = 0x00
@@ -122,12 +152,19 @@ module NXT.Codes where
 		
 	data CommandMode = Direct | System | Reply
 	-- | Translate a Commandmode into its numeric value
+	instance Enum CommandMode where
+		fromEnum Direct = 0x00
+		fromEnum System = 0x01
+		fromEnum Reply  = 0x02
+		toEnum   0x00   = Direct
+		toEnum   0x80   = Direct
+		toEnum   0x01   = System
+		toEnum   0x81   = System
+		toEnum   0x02	= Reply
 	commandType :: CommandMode -> Bool -> Word8
-	commandType Direct True  = 0x00
-	commandType System True  = 0x01
 	commandType Reply  _     = 0x02
-	commandType Direct False = 0x80
-	commandType System False = 0x81
+	commandType cm     True  = fromIntegral (fromEnum cm)
+	commandType cm     False = fromIntegral (fromEnum cm + 0x80)
 	
 	-- | Translate an Opcode into its CommandMode and numeric value
 	opcode :: OP_CODE -> (CommandMode, Integer)
