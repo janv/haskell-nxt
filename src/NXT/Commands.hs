@@ -74,16 +74,24 @@ littleEndianInt i = B.pack [lsb, msb]
 -- Convert a Word16 value to a little-endian ByteString
 littleEndianWord16 :: Word16 -> B.ByteString
 littleEndianWord16 w = B.pack [lsb, msb]
-			where lsb = fromIntegral (w .&. 0x00FF `shiftR` 0)
-			      msb = fromIntegral (w .&. 0xFF00 `shiftR` 8)
+			where lsb = fromIntegral ((w .&. 0x00FF) `shiftR` 0)
+			      msb = fromIntegral ((w .&. 0xFF00) `shiftR` 8)
 
 -- Convert a Word32 value to a little-endian ByteString
 littleEndianWord32 :: Word32 -> B.ByteString
 littleEndianWord32 w = B.pack [lsb, byte1, byte2, msb]
-			where lsb   = fromIntegral (w .&. 0x000000FF `shiftR`  0)
-			      byte1 = fromIntegral (w .&. 0x0000FF00 `shiftR`  8)
-			      byte2 = fromIntegral (w .&. 0x00FF0000 `shiftR` 16)
-			      msb   = fromIntegral (w .&. 0xFF000000 `shiftR` 24)
+			where lsb   = fromIntegral ((w .&. 0x000000FF) `shiftR`  0)
+			      byte1 = fromIntegral ((w .&. 0x0000FF00) `shiftR`  8)
+			      byte2 = fromIntegral ((w .&. 0x00FF0000) `shiftR` 16)
+			      msb   = fromIntegral ((w .&. 0xFF000000) `shiftR` 24)
+
+debugByteString :: B.ByteString -> String
+debugByteString b = B.foldr mapfun [] b
+			where wordToHex w = charToHex (upperFour w) : charToHex (lowerFour w) : []
+			      upperFour w = fromIntegral w `shiftR` 4
+			      lowerFour w = fromIntegral w .&. 0xF
+			      charToHex c = toUpper (intToDigit c)
+			      mapfun w str = "0x" ++ (wordToHex w) ++ "(" ++ (show w) ++ ") " ++ str
 
 ------------------------------------------------------------------------------
 -- Send and receive
@@ -181,4 +189,4 @@ setoutputstateMsg :: OutputPort
 	-> Message
 setoutputstateMsg po pw om rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++ tr +++ rs +++ (littleEndianWord32 tl)
 
-setouputstate = send7 Direct setoutputstateMsg
+setoutputstate = send7 Direct setoutputstateMsg

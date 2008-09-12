@@ -29,7 +29,7 @@ module NXT.Codes where
 		toEnum   0x02     = MotorC
 		toEnum   0xFF     = MotorAll
         
-	-- output mode
+	-- output mode TODO: Bitfield
 	data OutputMode = Coast | MotorOn | Brake | Regulated
 	instance Enum OutputMode where
 		fromEnum Coast     = 0x00
