@@ -50,6 +50,12 @@ instance Appendable RegulationMode where
 	toBS p = B.singleton (fromIntegral (fromEnum p))
 instance Appendable RunState where
 	toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable InputPort where
+	toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable SensorType where
+	toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable SensorMode where
+	toBS p = B.singleton (fromIntegral (fromEnum p))
 
 ------------------------------------------------------------------------------
 -- Helper functions
@@ -175,7 +181,6 @@ playtoneMsg :: Word16 -> Word16 -> Message
 playtoneMsg freq duration = "\x03" +++ freqWord  +++ durWord
 				where freqWord = littleEndianWord16 freq
 				      durWord  = littleEndianWord16 duration
-
 playtone :: Handle -> Word16 -> Word16 -> IO ()
 playtone = send2 Direct playtoneMsg
 
@@ -188,5 +193,8 @@ setoutputstateMsg :: OutputPort
 	-> Word32		-- ^ Tacho Limit (ULONG 0:Run Forever)
 	-> Message
 setoutputstateMsg po pw om rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++ tr +++ rs +++ (littleEndianWord32 tl)
-
 setoutputstate = send7 Direct setoutputstateMsg
+
+setinputmodeMsg :: InputPort -> SensorType -> SensorMode -> Message
+setinputmodeMsg port sensortype mode = "\x05" +++ port +++ sensortype +++ mode
+setinputmode = send3 Direct setinputmodeMsg
