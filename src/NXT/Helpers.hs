@@ -31,10 +31,11 @@ littleEndianWord32 w = B.pack [lsb, byte1, byte2, msb]
 			      byte2 = fromIntegral ((w .&. 0x00FF0000) `shiftR` 16)
 			      msb   = fromIntegral ((w .&. 0xFF000000) `shiftR` 24)
 
+-- All of these already perform byte order conversion
 word32FromWords :: [Word8] -> Word32
-word32FromWords (a:b:c:d:[]) = (fromIntegral a) `shiftL` 24 + (fromIntegral b) `shiftL` 16 + (fromIntegral c) `shiftL` 8 + (fromIntegral d)
+word32FromWords (a:b:c:d:[]) = (fromIntegral d) `shiftL` 24 + (fromIntegral c) `shiftL` 16 + (fromIntegral b) `shiftL` 8 + (fromIntegral a)
 word16FromWords :: [Word8] -> Word16
-word16FromWords (c:d:[]) = (fromIntegral c) `shiftL` 8 + (fromIntegral d)
+word16FromWords (a:b:[]) = (fromIntegral b) `shiftL` 8 + (fromIntegral a)
 int32FromWords :: [Word8] -> Int32
 int32FromWords (a:b:c:d:[]) = fromIntegral (word32FromWords (a:b:c:d:[]))
 int16FromWords :: [Word8] -> Int16
