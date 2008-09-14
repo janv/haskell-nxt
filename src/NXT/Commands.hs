@@ -75,7 +75,15 @@ send handle mode cmd = do
 
 -- | Receive Data from the NXT
 receive :: Handle -> IO Message
-receive handle = hFlush handle >> B.hGetContents handle -- TODO: Gibt wahrscheinlich ein Problem mit TimeOut
+receive handle = do
+	hFlush handle
+	btheader  <- B.hGetNonBlocking handle 2
+	if 0 == B.length btheader
+		then return B.empty
+		else do msglength <- return (fromIntegral (int16FromWords (B.unpack btheader)))
+			if msglength == 0
+				then return B.empty
+				else B.hGet handle (msglength)
 
 -- | Most Basic Communication function
 sendReceive :: Handle		-- ^ IO Handle
