@@ -19,6 +19,8 @@ module NXT where
 		setoutputstate h MotorA (-70) [MotorOn, Brake, Regulated] MotorSpeed 0 Running 0
 		hFlush h
 		sleep 2
+		getoutputstate h MotorA
+		hFlush h
 		setoutputstate h MotorA 0 [MotorOn, Brake, Regulated] MotorSpeed 0 RunStateIdle 0
 		hFlush h
 		sleep 2

@@ -143,7 +143,7 @@ setoutputstateMsg :: OutputPort
 	-> Word32		-- ^ Tacho Limit (ULONG 0:Run Forever)
 	-> Message
 setoutputstateMsg po pw oms rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++ tr +++ rs +++ (littleEndianWord32 tl)
-	where om = foldl (\h o -> h .|. (fromIntegral (fromEnum o)) ) (0x00::Word8) oms
+	where om = bitfieldFromEnum oms
 setoutputstate = send7 Direct setoutputstateMsg
 
 setinputmodeMsg :: InputPort -> SensorType -> SensorMode -> Message
@@ -164,7 +164,7 @@ data OutputState =
 	OutputState {
 		outputPort      :: OutputPort,
 		powerSetPoint   :: Int8,
-		outputMode      :: OutputMode,
+		outputMode      :: [OutputMode],
 		regulationMode  :: RegulationMode,
 		turnRatio       :: Int8,
 		runState        :: RunState,
@@ -174,14 +174,14 @@ data OutputState =
 		rotationCount   :: Int32	-- ^ Current position relative to last reset of the rotation sensor for this motor
 	}
 os :: Message -> OutputState
-os m = OutputState port power om rm tr rs tl tc btc rc
+os m = OutputState port power oms rm tr rs tl tc btc rc
 	where parts = segmentList (B.unpack m) [3, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4]
-	      port  = toEnum       (pickSegment parts 1)
-	      power = fromIntegral (pickSegment parts 2)
-	      om    = toEnum       (pickSegment parts 3)
-	      rm    = toEnum       (pickSegment parts 4)
-	      tr    = fromIntegral (pickSegment parts 5)
-	      rs    = toEnum       (pickSegment parts 6)
+	      port  = toEnum           (pickSegment parts 1 )
+	      power = fromIntegral     (pickSegment parts 2 )
+	      oms   = enumFromBitfield (pickSegment parts 3 )
+	      rm    = toEnum           (pickSegment parts 4 )
+	      tr    = fromIntegral     (pickSegment parts 5 )
+	      rs    = toEnum           (pickSegment parts 6 )
 	      tl    = word32FromWords (reverse (parts !!  7))
 	      tc    = int32FromWords  (reverse (parts !!  8))
 	      btc   = int32FromWords  (reverse (parts !!  9))

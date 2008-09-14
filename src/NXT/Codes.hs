@@ -23,7 +23,7 @@ instance Enum OutputPort where
 	toEnum   0x02     = MotorC
 	toEnum   0xFF     = MotorAll
 
--- output mode TODO: Bitfield
+-- output modes
 data OutputMode = Coast | MotorOn | Brake | Regulated
 instance Enum OutputMode where
 	fromEnum Coast     = 0x00

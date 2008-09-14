@@ -71,3 +71,15 @@ segmentList bs (s:ss) = (take s bs) : (segmentList (drop s bs) ss)
 
 pickSegment :: (Integral a, Num b) => [[a]] -> Int -> b
 pickSegment segments n = fromIntegral (head (segments !! n))
+
+-- | If an Enum Type consists of Flags in a Bitfield
+--   use this function to combine a list of this types Constructors
+--   into a Word8 representing the matching Bitfield
+bitfieldFromEnum :: Enum a => [a] -> Word8
+bitfieldFromEnum (o:os) = (fromIntegral (fromEnum o)) .|. (bitfieldFromEnum os)
+bitfieldFromEnum []   = 0x00
+
+-- | Reverses bitFieldFromEnum
+enumFromBitfield :: Enum a => Word8 -> [a]
+enumFromBitfield bits = fmap (toEnum) setBits
+	where setBits = filter (\n -> testBit bits n) [1..7]
