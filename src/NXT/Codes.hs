@@ -205,9 +205,8 @@ data OP_CODE =
 	| CLOSE_MODULE_HANDLE     
 	| READ_IO_MAP             
 	| WRITE_IO_MAP            
-	
+
 data CommandMode = Direct | System | Reply
--- | Translate a Commandmode into its numeric value
 instance Enum CommandMode where
 	fromEnum Direct = 0x00
 	fromEnum System = 0x01
@@ -217,6 +216,8 @@ instance Enum CommandMode where
 	toEnum   0x01   = System
 	toEnum   0x81   = System
 	toEnum   0x02	= Reply
+-- | Combine a commandmode and a Flag indicating wether to expect a reply
+--   into a Command-Word encoding both
 commandType :: CommandMode -> Bool -> Word8
 commandType Reply  _     = 0x02
 commandType cm     True  = fromIntegral (fromEnum cm)

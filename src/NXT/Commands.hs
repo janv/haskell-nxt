@@ -1,6 +1,7 @@
 module NXT.Commands where
 
 import NXT.Codes
+import NXT.Helpers
 import System.IO
 import Data.Char
 import Data.Word
@@ -10,94 +11,54 @@ import qualified Data.ByteString as B
 
 type Message = B.ByteString
 
+------------------------------------------------------------------------------
+-- Appendable Class
+------------------------------------------------------------------------------
 
--- class Byte b where
--- 	toSingleton :: b -> Message
--- 	(+)
--- 	-- Instanzen: Word8, Int, Char
--- 	-- Methoden zur Verkettung
--- 	-- Einfache Verkettung von Einzelwerten zu Arrays
--- 	-- show instanz so dass die Hex-Werte angezeigt werden
--- 	-- ByteString erzeugen aus Word8 Array
-
--- instance B.ByteString [Byte]
-
-(+++) :: (Appendable a, Appendable b) => a -> b -> B.ByteString
-x +++ y = B.append (toBS x) (toBS y)
-
+-- | Support easy construction of NXT Command Messages
 class Appendable a where
 	toBS :: a -> B.ByteString
 
+(+++) :: (Appendable a, Appendable b) => a -> b -> B.ByteString
+x +++ y = B.append (toBS x) (toBS y)
+	
 instance Appendable B.ByteString where
 	toBS bs = bs
 instance Appendable Word8 where
 	toBS x = B.singleton x
--- instance (Enum a) => Appendable a where
--- 	toBS x = B.singleton (fromEnum x)
 instance Appendable [Char] where
 	toBS s = B.pack (fmap (fromIntegral . ord) s)
+instance Appendable Int  where toBS i = B.singleton (fromIntegral i)
+instance Appendable Int8 where toBS i = B.singleton (fromIntegral i)
+instance Appendable OutputPort     where toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable OutputMode     where toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable RegulationMode where toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable RunState       where toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable InputPort      where toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable SensorType     where toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable SensorMode     where toBS p = B.singleton (fromIntegral (fromEnum p))
+-- instance (Enum a) => Appendable a where
+-- 	toBS x = B.singleton (fromEnum x)
 -- instance Integral a => Appendable [a] where
 -- 	toBS l = B.pack (fmap fromIntegral l)
-instance Appendable Int where
-	toBS i = B.singleton (fromIntegral i)
-instance Appendable Int8 where
-	toBS i = B.singleton (fromIntegral i)
-instance Appendable OutputPort where
-	toBS p = B.singleton (fromIntegral (fromEnum p))
-instance Appendable OutputMode where
-	toBS p = B.singleton (fromIntegral (fromEnum p))
-instance Appendable RegulationMode where
-	toBS p = B.singleton (fromIntegral (fromEnum p))
-instance Appendable RunState where
-	toBS p = B.singleton (fromIntegral (fromEnum p))
-instance Appendable InputPort where
-	toBS p = B.singleton (fromIntegral (fromEnum p))
-instance Appendable SensorType where
-	toBS p = B.singleton (fromIntegral (fromEnum p))
-instance Appendable SensorMode where
-	toBS p = B.singleton (fromIntegral (fromEnum p))
 
 ------------------------------------------------------------------------------
 -- Helper functions
 ------------------------------------------------------------------------------
-
--- | Convert a String into a ByteString
-bsFromS :: String -> B.ByteString
-bsFromS chars = B.pack (fmap (fromIntegral . ord) chars)
 
 -- | Add the BlueTooth length header in front of a message
 btPack :: B.ByteString -> B.ByteString
 btPack msg = B.append (littleEndianInt (B.length msg)) msg
 -- TODO: Checken ob korrekt, evtl. verwirft das frühe Konvertieren 
 
--- Convert an Integer to a little endian ByteString 
--- The int is assumed not to exceed 16 bit
-littleEndianInt :: Int -> B.ByteString
-littleEndianInt i = B.pack [lsb, msb]
-			where lsb = fromIntegral (i .&. 0xFF)
-			      msb = fromIntegral (i `shiftR` 8)
-
--- Convert a Word16 value to a little-endian ByteString
-littleEndianWord16 :: Word16 -> B.ByteString
-littleEndianWord16 w = B.pack [lsb, msb]
-			where lsb = fromIntegral ((w .&. 0x00FF) `shiftR` 0)
-			      msb = fromIntegral ((w .&. 0xFF00) `shiftR` 8)
-
--- Convert a Word32 value to a little-endian ByteString
-littleEndianWord32 :: Word32 -> B.ByteString
-littleEndianWord32 w = B.pack [lsb, byte1, byte2, msb]
-			where lsb   = fromIntegral ((w .&. 0x000000FF) `shiftR`  0)
-			      byte1 = fromIntegral ((w .&. 0x0000FF00) `shiftR`  8)
-			      byte2 = fromIntegral ((w .&. 0x00FF0000) `shiftR` 16)
-			      msb   = fromIntegral ((w .&. 0xFF000000) `shiftR` 24)
-
-debugByteString :: B.ByteString -> String
-debugByteString b = B.foldr mapfun [] b
-			where wordToHex w = charToHex (upperFour w) : charToHex (lowerFour w) : []
-			      upperFour w = fromIntegral w `shiftR` 4
-			      lowerFour w = fromIntegral w .&. 0xF
-			      charToHex c = toUpper (intToDigit c)
-			      mapfun w str = "0x" ++ (wordToHex w) ++ "(" ++ (show w) ++ ") " ++ str
+-- | Strip the BlueTooth length header from a message
+btUnPack :: Message -> Message
+btUnPack m = if assumedLength == (indicatedLength ws)
+		then B.drop 2 m
+		else error "Message length mismatch"
+	where ws = B.unpack m 
+	      assumedLength   = (B.length m) - 2
+	      indicatedLength (lsb:msb:msg) = ((fromIntegral msb) `shiftL` 8) + (fromIntegral lsb)
 
 ------------------------------------------------------------------------------
 -- Send and receive
@@ -113,9 +74,8 @@ send handle mode cmd = do
 	return ()
 
 -- | Receive Data from the NXT
-receive :: Handle
-	-> IO Message
-receive handle = B.hGetContents handle
+receive :: Handle -> IO Message
+receive handle = hFlush handle >> B.hGetContents handle -- TODO: Gibt wahrscheinlich ein Problem mit TimeOut
 
 -- | Most Basic Communication function
 sendReceive :: Handle		-- ^ IO Handle
@@ -125,34 +85,13 @@ sendReceive :: Handle		-- ^ IO Handle
 	-> IO (Maybe Message)	-- ^ Just The reply or Nothing	
 sendReceive handle mode reply cmd = do
 	B.hPut handle message
-	-- putStrLn (show (B.unpack cmd))
-	-- putStrLn (show (B.unpack cmdWithMode))
-	-- putStrLn (show (B.unpack message))
+	hFlush handle
 	if reply
 		then do answer <- receive handle
-			return (Just answer)
+			return (Just (btUnPack answer))
 		else return Nothing
 	where message     = btPack cmdWithMode
 	      cmdWithMode = (commandType mode reply) `B.cons` cmd
-
-------------------------------------------------------------------------------
--- Commands
-------------------------------------------------------------------------------
-
--- | Helper that changes the result type of a function
-
--- TODO: Smells like an Arrow
-mapResult2 :: (c -> d)		-- ^ Mapping between the result types
-	-> (a -> b -> c)	-- ^ The original function
-	-> (a -> b -> d)	-- ^ The resulting function
-	
-mapResult2 mapFun fun a b           = mapFun (fun a b)
-mapResult3 mapFun fun a b c         = mapFun (fun a b c)
-mapResult4 mapFun fun a b c d       = mapFun (fun a b c d)
-mapResult5 mapFun fun a b c d e     = mapFun (fun a b c d e)
-mapResult6 mapFun fun a b c d e f   = mapFun (fun a b c d e f)
-mapResult7 mapFun fun a b c d e f g = mapFun (fun a b c d e f g)
-
 
 -- | Helper function used to create IO Actions more easily from 
 --   NXT Message composition functions
@@ -164,14 +103,17 @@ send2 :: CommandMode		-- ^ The commandMode to use
 	-> a			-- ^ First argument to the NXT Message Function
 	-> b			-- ^ Second argument to the NXT Message Function
 	-> IO()
-	
+
 send2 mode msg h = mapResult2 (send h mode) msg 
 send3 mode msg h = mapResult3 (send h mode) msg 
 send4 mode msg h = mapResult4 (send h mode) msg 
 send5 mode msg h = mapResult5 (send h mode) msg 
 send6 mode msg h = mapResult6 (send h mode) msg 
-send7 mode msg h = mapResult7 (send h mode) msg 
+send7 mode msg h = mapResult7 (send h mode) msg
 
+------------------------------------------------------------------------------
+-- Commands
+------------------------------------------------------------------------------
 
 -- STARTPROGRAM
 -- STOPPROGRAM
@@ -186,15 +128,53 @@ playtone = send2 Direct playtoneMsg
 
 setoutputstateMsg :: OutputPort
 	-> Int8			-- ^ Power -100 - 100
-	-> OutputMode
+	-> [OutputMode]
 	-> RegulationMode
 	-> Int8			-- ^ Turn Ratio SBYTE (-100 - 100)
 	-> RunState		-- UBYTE
 	-> Word32		-- ^ Tacho Limit (ULONG 0:Run Forever)
 	-> Message
-setoutputstateMsg po pw om rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++ tr +++ rs +++ (littleEndianWord32 tl)
+setoutputstateMsg po pw oms rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++ tr +++ rs +++ (littleEndianWord32 tl)
+	where om = foldl (\h o -> h .|. (fromIntegral (fromEnum o)) ) (0x00::Word8) oms
 setoutputstate = send7 Direct setoutputstateMsg
 
 setinputmodeMsg :: InputPort -> SensorType -> SensorMode -> Message
 setinputmodeMsg port sensortype mode = "\x05" +++ port +++ sensortype +++ mode
 setinputmode = send3 Direct setinputmodeMsg
+
+getoutputstateMsg :: OutputPort -> Message
+getoutputstateMsg port = "\x06" +++ port -- TODO Range 0-2
+
+getoutputstate :: Handle -> OutputPort -> IO (OutputState)
+getoutputstate h port = do
+	reply <- sendReceive h Direct True (getoutputstateMsg port)
+	case reply of
+		Nothing -> error "Getting Outputstate: No Reply"
+		Just m  -> return (os m)
+	
+data OutputState =
+	OutputState {
+		outputPort      :: OutputPort,
+		powerSetPoint   :: Int8,
+		outputMode      :: OutputMode,
+		regulationMode  :: RegulationMode,
+		turnRatio       :: Int8,
+		runState        :: RunState,
+		tachoLimit      :: Word32,	-- ^ Current limit on a movement in progress if any
+		tachoCount      :: Int32,	-- ^ Internal count. Number of counts since last reset of the motor
+		blockTachoCount :: Int32,	-- ^ Current position relative to the last programmed movement
+		rotationCount   :: Int32	-- ^ Current position relative to last reset of the rotation sensor for this motor
+	}
+os :: Message -> OutputState
+os m = OutputState port power om rm tr rs tl tc btc rc
+	where parts = segmentList (B.unpack m) [3, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4]
+	      port  = toEnum       (pickSegment parts 1)
+	      power = fromIntegral (pickSegment parts 2)
+	      om    = toEnum       (pickSegment parts 3)
+	      rm    = toEnum       (pickSegment parts 4)
+	      tr    = fromIntegral (pickSegment parts 5)
+	      rs    = toEnum       (pickSegment parts 6)
+	      tl    = word32FromWords (reverse (parts !!  7))
+	      tc    = int32FromWords  (reverse (parts !!  8))
+	      btc   = int32FromWords  (reverse (parts !!  9))
+	      rc    = int32FromWords  (reverse (parts !! 10))
