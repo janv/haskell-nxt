@@ -42,7 +42,7 @@ int16FromWords :: [Word8] -> Int16
 int16FromWords (c:d:[]) = fromIntegral (word16FromWords (c:d:[]))
 
 
-
+-- | Returns a HEX-representation of a ByteString
 debugByteString :: B.ByteString -> String
 debugByteString b = B.foldr mapfun [] b
 			where wordToHex w = charToHex (upperFour w) : charToHex (lowerFour w) : []
@@ -65,10 +65,21 @@ mapResult5 mapFun fun a b c d e     = mapFun (fun a b c d e)
 mapResult6 mapFun fun a b c d e f   = mapFun (fun a b c d e f)
 mapResult7 mapFun fun a b c d e f g = mapFun (fun a b c d e f g)
 
+-- | Splits a list into sublist according to given lengths
+--
+--   > segmentList [a,b,c,d,e,f,g] [1,3,1,2] = [ [a], [b,c,d], [e], [f,g] ]
 segmentList :: [a] -> [Int] -> [[a]]
 segmentList bs []     = []
 segmentList bs (s:ss) = (take s bs) : (segmentList (drop s bs) ss)
 
+-- | On a list split by segmentList, pick the heads of a sublist
+--
+--   > l = segmentList [a,b,c,d,e,f,g] [1,3,1,2]
+--   > l == [ [a], [b,c,d], [e], [f,g] ]
+--
+--   > pickSegment l 0 == a
+--   > pickSegment l 1 == b
+--   > pickSegment l 2 == e
 pickSegment :: (Integral a, Num b) => [[a]] -> Int -> b
 pickSegment segments n = fromIntegral (head (segments !! n))
 
