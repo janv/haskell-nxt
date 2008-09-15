@@ -37,6 +37,7 @@ instance Appendable RunState       where toBS p = B.singleton (fromIntegral (fro
 instance Appendable InputPort      where toBS p = B.singleton (fromIntegral (fromEnum p))
 instance Appendable SensorType     where toBS p = B.singleton (fromIntegral (fromEnum p))
 instance Appendable SensorMode     where toBS p = B.singleton (fromIntegral (fromEnum p))
+instance Appendable Bool           where toBS p = B.singleton (if p then (0x01::Word8) else (0x00::Word8))
 -- instance (Enum a) => Appendable a where
 -- 	toBS x = B.singleton (fromEnum x)
 -- instance Integral a => Appendable [a] where
@@ -118,7 +119,7 @@ send2 :: CommandMode		-- ^ The commandMode to use
 	-> a			-- ^ First argument to the NXT Message Function
 	-> b			-- ^ Second argument to the NXT Message Function
 	-> IO()
-
+send1 mode msg h = mapResult1 (send h mode) msg
 send2 mode msg h = mapResult2 (send h mode) msg 
 send3 mode msg h = mapResult3 (send h mode) msg 
 send4 mode msg h = mapResult4 (send h mode) msg 
@@ -233,3 +234,17 @@ iv m = InputValues p v c st sm r n s cv
 	      n  = word16FromWords (parts !! 7)
 	      s  = int16FromWords  (parts !! 8)
 	      cv = int16FromWords  (parts !! 9)
+
+-- RESETINPUTSCALEDVALUE
+resetinputscaledvalueMsg :: InputPort -> Message
+resetinputscaledvalueMsg port = "\x08" +++ port
+resetinputscaledvalue = send1 Direct resetinputscaledvalueMsg
+
+-- MESSAGEWRITE
+
+-- RESETMOTORPOSITION
+resetmotorpositionMsg :: OutputPort
+	-> Bool	-- ^ Relative? (True: relative to last movement, False: absolute position)
+	-> Message
+resetmotorpositionMsg port relative = "\x0A" +++ port +++ relative
+resetmotorposition = send2 Direct resetmotorpositionMsg
