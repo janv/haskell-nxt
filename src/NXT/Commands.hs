@@ -187,13 +187,49 @@ data OutputState =
 os :: Message -> OutputState
 os m = OutputState port power oms rm tr rs tl tc btc rc
 	where parts = segmentList (B.unpack m) [3, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4]
-	      port  = toEnum           (pickSegment parts 1 )
-	      power = fromIntegral     (pickSegment parts 2 )
-	      oms   = enumFromBitfield (pickSegment parts 3 )
-	      rm    = toEnum           (pickSegment parts 4 )
-	      tr    = fromIntegral     (pickSegment parts 5 )
-	      rs    = toEnum           (pickSegment parts 6 )
-	      tl    = word32FromWords (reverse (parts !!  7))
-	      tc    = int32FromWords  (reverse (parts !!  8))
-	      btc   = int32FromWords  (reverse (parts !!  9))
-	      rc    = int32FromWords  (reverse (parts !! 10))
+	      port  = toEnum           (pickSegment parts 1)
+	      power = fromIntegral     (pickSegment parts 2)
+	      oms   = enumFromBitfield (pickSegment parts 3)
+	      rm    = toEnum           (pickSegment parts 4)
+	      tr    = fromIntegral     (pickSegment parts 5)
+	      rs    = toEnum           (pickSegment parts 6)
+	      tl    = word32FromWords  (parts !!  7)
+	      tc    = int32FromWords   (parts !!  8)
+	      btc   = int32FromWords   (parts !!  9)
+	      rc    = int32FromWords   (parts !! 10)
+
+-- GETINPUTVALUES
+getinputvaluesMsg :: InputPort -> Message
+getinputvaluesMsg port = "\x07" +++ port
+
+getinputvalues :: Handle -> InputPort -> IO (InputValues)
+getinputvalues h port = do
+	reply <- sendReceive h Direct True (getinputvaluesMsg port)
+	case reply of
+		Nothing -> error "Getting Inputvalues: No Reply"
+		Just m  -> return (iv m)
+
+data InputValues =
+	InputValues {
+		port             :: InputPort,
+		valid            :: Bool,
+		calibrated       :: Bool,
+		sensorType       :: SensorType,
+		sensorMode       :: SensorMode,
+		raw              :: Word16,
+		normalized       :: Word16,
+		scaled           :: Int16,
+		calibrated_value :: Int16
+	} deriving Show
+iv :: Message -> InputValues
+iv m = InputValues p v c st sm r n s cv
+	where parts = segmentList (B.unpack m) [3, 1, 1, 1, 1, 1, 2, 2, 2, 2]
+	      p  = toEnum (pickSegment parts 1)
+	      v  =   1 == (pickSegment parts 2)
+	      c  =   1 == (pickSegment parts 3)
+	      st = toEnum (pickSegment parts 4)
+	      sm = toEnum (pickSegment parts 5)
+	      r  = word16FromWords (parts !! 6)
+	      n  = word16FromWords (parts !! 7)
+	      s  = int16FromWords  (parts !! 8)
+	      cv = int16FromWords  (parts !! 9)

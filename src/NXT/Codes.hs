@@ -80,19 +80,19 @@ instance Enum InputPort where
 
 -- sensor type
 data SensorType =
-	  NoSensor
-	| Switch
-	| Temperature
-	| Reflection
-	| Angle
-	| LightActive
-	| LightInactive
-	| SoundDb
-	| SoundDba
-	| Custom
-	| LowSpeed
-	| LowSpeed9V
-	| NoOfSensorTypes
+	  NoSensor		-- ^ No Sensor configured
+	| Switch		-- ^ NXT or RCX touch sensor
+	| Temperature		-- ^ RCX temperature sensor
+	| Reflection		-- ^ RCX light sensor
+	| Angle			-- ^ RCX rotation sensor
+	| LightActive		-- ^ NXT light sensor with floodlight enabled
+	| LightInactive		-- ^ NXT light sensor with floodlight disabled
+	| SoundDb		-- ^ NXT sound sensor; dB scaling
+	| SoundDba		-- ^ NXT sound sensor; dBA scaling
+	| Custom		-- ^ Unused
+	| LowSpeed		-- ^ I2C digital sensor
+	| LowSpeed9V		-- ^ I2C digital sensor; 9V power
+	| NoOfSensorTypes	-- ^ Unused
 	deriving Show
 instance Enum SensorType where
 	fromEnum NoSensor        = 0x00
@@ -124,15 +124,15 @@ instance Enum SensorType where
 
 -- sensor mode
 data SensorMode =
-	  RawMode           -- ^ report scaled value equal to raw value
-	| BooleanMode       -- ^ report scaled value as 1 true or 0 false, false if raw value > 55% of total range, true if < 45%
-	| TransitionCntMode -- ^ report scaled value as number of transitions between true and false
-	| PeriodCounterMode -- ^ report scaled value as number of transitions from false to true, then back to false
-	| PctFullScaleMode  -- ^ report scaled value as % of full scale reading for configured sensor type
-	| CelsiusMode       
-	| FahrenheitMode    
-	| AngleStepMode     -- ^ report scaled value as count of ticks on RCX-style rotation sensor
-	| SlopeMask         
+	  RawMode		-- ^ report scaled value equal to raw value
+	| BooleanMode		-- ^ report scaled value as 1 true or 0 false, false if raw value > 55% of total range, true if < 45%
+	| TransitionCntMode	-- ^ report scaled value as number of transitions between true and false
+	| PeriodCounterMode	-- ^ report scaled value as number of transitions from false to true, then back to false
+	| PctFullScaleMode	-- ^ report scaled value as % of full scale reading for configured sensor type
+	| CelsiusMode
+	| FahrenheitMode	
+	| AngleStepMode		-- ^ report scaled value as count of ticks on RCX-style rotation sensor
+	| SlopeMask
 	| ModeMask
 	deriving Show
 instance Enum SensorMode where
