@@ -14,7 +14,7 @@ module NXT where
 		playtone h 500 500
 		hFlush h
 		setinputmode h Sensor1 Switch BooleanMode
-		r <- getinputvalues h Sensor1
+		r <- getbatterylevel h
 		putStrLn (show r)
 {-		-- putStrLn  (debugByteString (setoutputstateMsg MotorA 50 MotorOn MotorSpeed 50 Running 20))
 		setoutputstate h MotorA 30 [MotorOn, Brake, Regulated] MotorSpeed 0 Running 0

@@ -248,3 +248,32 @@ resetmotorpositionMsg :: OutputPort
 	-> Message
 resetmotorpositionMsg port relative = "\x0A" +++ port +++ relative
 resetmotorposition = send2 Direct resetmotorpositionMsg
+
+-- GETBATTERYLEVEL
+getbatterylevelMsg :: Message
+getbatterylevelMsg = B.singleton 0x0B
+getbatterylevel :: Handle -> IO (Word16)
+getbatterylevel h = do
+	reply <- sendReceive h Direct True getbatterylevelMsg
+	case reply of
+		Nothing -> error "getbatterylevel: No Reply"
+		Just m  -> do let parts = segmentList (B.unpack m) [3, 2]
+			          level = word16FromWords (parts !! 1)
+			      return level
+
+-- STOPSOUNDPLAYBACK
+stopsoundplaybackMsg :: Message
+stopsoundplaybackMsg = B.singleton 0x0C
+stopsoundplayback handle = send handle Direct stopsoundplaybackMsg
+
+-- KEEPALIVE
+keepaliveMsg :: Message
+keepaliveMsg = B.singleton 0x0D
+keepalive handle = send handle Direct keepaliveMsg
+-- TODO: Receive sleep time limit
+
+-- LSGETSTATUS
+-- LSWRITE
+-- LSREAD
+-- GETCURRENTROGRAMME
+-- MESSAGEREAD
