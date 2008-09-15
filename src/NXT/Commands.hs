@@ -74,10 +74,13 @@ send handle mode cmd = do
 	return ()
 
 -- | Receive Data from the NXT
+--
+--   Works only with the bluetooth interface currently
+--   (length header read and strippend from messages)
 receive :: Handle -> IO Message
 receive handle = do
 	hFlush handle
-	btheader  <- B.hGetNonBlocking handle 2
+	btheader  <- B.hGet handle 2
 	if 0 == B.length btheader
 		then return B.empty
 		else do msglength <- return (fromIntegral (int16FromWords (B.unpack btheader)))
@@ -86,6 +89,9 @@ receive handle = do
 				else B.hGet handle (msglength)
 
 -- | Most Basic Communication function
+--
+--   Works only wth the bluetooth interface currently
+--   (length header is added to/stripped from messages)
 sendReceive :: Handle		-- ^ IO Handle
 	-> CommandMode		-- ^ The CommandMode
 	-> Bool			-- ^ Indicate wether a reply is expected or not
@@ -93,10 +99,11 @@ sendReceive :: Handle		-- ^ IO Handle
 	-> IO (Maybe Message)	-- ^ Just The reply or Nothing	
 sendReceive handle mode reply cmd = do
 	B.hPut handle message
+	-- putStrLn (debugByteString message)
 	hFlush handle
 	if reply
 		then do answer <- receive handle
-			return (Just (btUnPack answer))
+			return (Just answer)
 		else return Nothing
 	where message     = btPack cmdWithMode
 	      cmdWithMode = (commandType mode reply) `B.cons` cmd
@@ -127,6 +134,7 @@ send7 mode msg h = mapResult7 (send h mode) msg
 -- STOPPROGRAM
 -- PLAYSOUNDFILE
 
+-- PLAYTONE
 playtoneMsg :: Word16 -> Word16 -> Message
 playtoneMsg freq duration = "\x03" +++ freqWord  +++ durWord
 				where freqWord = littleEndianWord16 freq
@@ -134,6 +142,7 @@ playtoneMsg freq duration = "\x03" +++ freqWord  +++ durWord
 playtone :: Handle -> Word16 -> Word16 -> IO ()
 playtone = send2 Direct playtoneMsg
 
+-- SETOUTPUTSTATE
 setoutputstateMsg :: OutputPort
 	-> Int8			-- ^ Power -100 - 100
 	-> [OutputMode]
@@ -146,10 +155,12 @@ setoutputstateMsg po pw oms rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++
 	where om = bitfieldFromEnum oms
 setoutputstate = send7 Direct setoutputstateMsg
 
+-- SETINPUTMODE
 setinputmodeMsg :: InputPort -> SensorType -> SensorMode -> Message
 setinputmodeMsg port sensortype mode = "\x05" +++ port +++ sensortype +++ mode
 setinputmode = send3 Direct setinputmodeMsg
 
+-- GETOUTPUTSTATE
 getoutputstateMsg :: OutputPort -> Message
 getoutputstateMsg port = "\x06" +++ port -- TODO Range 0-2
 
@@ -172,7 +183,7 @@ data OutputState =
 		tachoCount      :: Int32,	-- ^ Internal count. Number of counts since last reset of the motor
 		blockTachoCount :: Int32,	-- ^ Current position relative to the last programmed movement
 		rotationCount   :: Int32	-- ^ Current position relative to last reset of the rotation sensor for this motor
-	}
+	} deriving Show
 os :: Message -> OutputState
 os m = OutputState port power oms rm tr rs tl tc btc rc
 	where parts = segmentList (B.unpack m) [3, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4]

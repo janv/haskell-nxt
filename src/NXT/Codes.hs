@@ -12,7 +12,7 @@ usb_readsize       = 64
 usb_interface      = 0
 
 -- motors
-data OutputPort = MotorA | MotorB | MotorC | MotorAll
+data OutputPort = MotorA | MotorB | MotorC | MotorAll deriving Show
 instance Enum OutputPort where
 	fromEnum MotorA   = 0x00
 	fromEnum MotorB   = 0x01
@@ -24,7 +24,7 @@ instance Enum OutputPort where
 	toEnum   0xFF     = MotorAll
 
 -- output modes
-data OutputMode = Coast | MotorOn | Brake | Regulated
+data OutputMode = Coast | MotorOn | Brake | Regulated deriving Show
 instance Enum OutputMode where
 	fromEnum Coast     = 0x00
 	fromEnum MotorOn   = 0x01
@@ -40,6 +40,7 @@ data RegulationMode =
 	  RegulationIdle	-- ^ disables regulation
 	| MotorSpeed		-- ^ auto adjust PWM duty cycle if motor is affected by physical load
 	| MotorSync		-- ^ attempt to keep rotation in sync with another motor that has this set, also involves turn ratio
+	deriving Show
 instance Enum RegulationMode where
 	fromEnum  RegulationIdle = 0x00
 	fromEnum  MotorSpeed     = 0x01
@@ -54,6 +55,7 @@ data RunState =
 	| RampUp        -- ^ ramping to a new SPEED set-point that is greater than the current SPEED set-point
 	| Running       -- ^ enables power to motor
 	| RampDown      -- ^ ramping to a new SPEED set-point that is less than the current SPEED set-point
+	deriving Show
 instance Enum RunState where
 	fromEnum RunStateIdle = 0x00
 	fromEnum RampUp       = 0x10
@@ -65,7 +67,7 @@ instance Enum RunState where
 	toEnum   0x40      = RampDown    
 
 -- sensors
-data InputPort = Sensor1 | Sensor2 | Sensor3 | Sensor4
+data InputPort = Sensor1 | Sensor2 | Sensor3 | Sensor4 deriving Show
 instance Enum InputPort where
 	fromEnum Sensor1 = 0x00
 	fromEnum Sensor2 = 0x01
@@ -91,6 +93,7 @@ data SensorType =
 	| LowSpeed
 	| LowSpeed9V
 	| NoOfSensorTypes
+	deriving Show
 instance Enum SensorType where
 	fromEnum NoSensor        = 0x00
 	fromEnum Switch          = 0x01
@@ -130,7 +133,8 @@ data SensorMode =
 	| FahrenheitMode    
 	| AngleStepMode     -- ^ report scaled value as count of ticks on RCX-style rotation sensor
 	| SlopeMask         
-	| ModeMask          
+	| ModeMask
+	deriving Show
 instance Enum SensorMode where
 	fromEnum RawMode            = 0x00
 	fromEnum BooleanMode        = 0x20

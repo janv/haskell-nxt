@@ -13,17 +13,18 @@ module NXT where
 		playtone h 500 500
 		hFlush h
 		-- putStrLn  (debugByteString (setoutputstateMsg MotorA 50 MotorOn MotorSpeed 50 Running 20))
-		setoutputstate h MotorA 70 [MotorOn, Brake, Regulated] MotorSpeed 0 Running 0
+		setoutputstate h MotorA 30 [MotorOn, Brake, Regulated] MotorSpeed 0 Running 0
 		hFlush h
-		sleep 2
-		setoutputstate h MotorA (-70) [MotorOn, Brake, Regulated] MotorSpeed 0 Running 0
+		sleep 1
+		setoutputstate h MotorA (-30) [MotorOn, Brake, Regulated] MotorSpeed 0 Running 0
 		hFlush h
-		sleep 2
-		getoutputstate h MotorA
+		sleep 1
+		os <- getoutputstate h MotorA
+		putStrLn (show os)
 		hFlush h
 		setoutputstate h MotorA 0 [MotorOn, Brake, Regulated] MotorSpeed 0 RunStateIdle 0
 		hFlush h
-		sleep 2
+		sleep 1
 		setoutputstate h MotorA 0 [Coast] RegulationIdle 0 RunStateIdle 0
 		hFlush h
 		hClose h
