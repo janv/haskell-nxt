@@ -145,7 +145,7 @@ playtone :: Handle -> Word16 -> Word16 -> IO ()
 playtone = send2 Direct playtoneMsg
 
 -- SETOUTPUTSTATE
-setoutputstateMsg :: OutputPort
+setoutputstateMsg :: OutputPort -- TODO: Version die OutputState als Parameter nimmt
 	-> Int8			-- ^ Power -100 - 100
 	-> [OutputMode]
 	-> RegulationMode

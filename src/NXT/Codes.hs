@@ -24,7 +24,7 @@ instance Enum OutputPort where
 	-- toEnum   0xFF     = MotorAll
 
 -- output modes
-data OutputMode = Coast | MotorOn | Brake | Regulated deriving Show
+data OutputMode = Coast | MotorOn | Brake | Regulated deriving (Show, Eq)
 instance Enum OutputMode where
 	fromEnum Coast     = 0x00
 	fromEnum MotorOn   = 0x01
@@ -40,7 +40,7 @@ data RegulationMode =
 	  RegulationIdle	-- ^ disables regulation
 	| MotorSpeed		-- ^ auto adjust PWM duty cycle if motor is affected by physical load
 	| MotorSync		-- ^ attempt to keep rotation in sync with another motor that has this set, also involves turn ratio
-	deriving Show
+	deriving (Show, Eq)
 instance Enum RegulationMode where
 	fromEnum  RegulationIdle = 0x00
 	fromEnum  MotorSpeed     = 0x01
