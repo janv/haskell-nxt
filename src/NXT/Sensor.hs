@@ -9,20 +9,20 @@ import Data.Word
 
 setupDefaultSensors :: Handle -> IO ()
 setupDefaultSensors h = do
-	setinputmode h Sensor1 Switch      BooleanMode
-	setinputmode h Sensor2 SoundDb     RawMode
+	setinputmode h Sensor1 Switch        BooleanMode
+	setinputmode h Sensor2 SoundDb       RawMode
 	setinputmode h Sensor3 LightInactive RawMode
-	setinputmode h Sensor4 LowSpeed9V  BooleanMode	-- Ultrasonic Distance sensor
+	setinputmode h Sensor4 LowSpeed9V    BooleanMode -- Ultrasonic Distance sensor
 
 getSwitch :: Handle -> IO (Bool)
 getSwitch h = do
 	iv <- getinputvalues h Sensor1
 	return (scaled iv > 0)
 
-
-
-
-
+getSound :: Handle -> IO (Float)
+getSound h = do
+	iv <- getinputvalues h Sensor2
+	return ((fromIntegral (normalized iv)) / 1023)
 
 getLight :: Handle -> IO (Float)
 getLight h = do
