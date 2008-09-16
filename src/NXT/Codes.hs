@@ -12,16 +12,16 @@ usb_readsize       = 64
 usb_interface      = 0
 
 -- motors
-data OutputPort = MotorA | MotorB | MotorC | MotorAll deriving Show
+data OutputPort = MotorA | MotorB | MotorC {-| MotorAll-} deriving Show
 instance Enum OutputPort where
 	fromEnum MotorA   = 0x00
 	fromEnum MotorB   = 0x01
 	fromEnum MotorC   = 0x02
-	fromEnum MotorAll = 0xFF
+	-- fromEnum MotorAll = 0xFF
 	toEnum   0x00     = MotorA
 	toEnum   0x01     = MotorB
 	toEnum   0x02     = MotorC
-	toEnum   0xFF     = MotorAll
+	-- toEnum   0xFF     = MotorAll
 
 -- output modes
 data OutputMode = Coast | MotorOn | Brake | Regulated deriving Show
