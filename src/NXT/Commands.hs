@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -XFlexibleInstances #-}
 module NXT.Commands where
 
 import NXT.Codes
