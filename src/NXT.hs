@@ -14,11 +14,11 @@ testloop = do
 	hSetBuffering h NoBuffering
 	-- B.hPut h (B.pack [6,0,128,3,244,1,244,1])
 	playtone h 500 500
-	-- sleep 2
-	-- setinputmode h Sensor4 Switch BooleanMode
-	setupDefaultSensors h
-	s <- getLight h
+	-- setupDefaultSensors h
+	s <- getbatterylevel h
 	putStrLn (show s)
+	-- a <- B.hGet h 5
+	-- putStrLn (show (debugByteString a))
 	
 {-		-- putStrLn  (debugByteString (setoutputstateMsg MotorA 50 MotorOn MotorSpeed 50 Running 20))
 	setoutputstate h MotorA 30 [MotorOn, Brake, Regulated] MotorSpeed 0 Running 0
@@ -31,6 +31,6 @@ testloop = do
 	sleep 1
 	setoutputstate h MotorA 0 [Coast] RegulationIdle 0 RunStateIdle 0
 -}
-	sleep 1
+	-- hWaitForInput h 250
 	hFlush h
 	hClose h

@@ -24,9 +24,9 @@ class Appendable a where
 x +++ y = B.append (toBS x) (toBS y)
 	
 instance Appendable B.ByteString where
-	toBS bs = bs
+	toBS = id
 instance Appendable Word8 where
-	toBS x = B.singleton x
+	toBS = B.singleton
 instance Appendable [Char] where
 	toBS s = B.pack (fmap (fromIntegral . ord) s)
 instance Appendable Int  where toBS i = B.singleton (fromIntegral i)
