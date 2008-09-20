@@ -82,7 +82,8 @@ send handle mode cmd = do
 receive :: Handle -> IO Message
 receive handle = do
 	hFlush handle
-	btheader  <- B.hGet handle 2
+	havinput <- hWaitForInput handle 1000 -- Wait for Input
+	btheader <- if havinput then B.hGet handle 2 else (error "No Input")
 	if 0 == B.length btheader
 		then return B.empty
 		else do msglength <- return (fromIntegral (int16FromWords (B.unpack btheader)))
