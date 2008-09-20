@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -XFlexibleInstances #-}
 module NXT.Commands where
 
+import NXT.Comm
 import NXT.Codes
 import NXT.Helpers
 import System.IO
@@ -9,8 +10,6 @@ import Data.Word
 import Data.Bits
 import Data.Int
 import qualified Data.ByteString as B
-
-type Message = B.ByteString
 
 ------------------------------------------------------------------------------
 -- Appendable Class
@@ -43,91 +42,6 @@ instance Appendable Bool           where toBS p = B.singleton (if p then (0x01::
 -- 	toBS x = B.singleton (fromEnum x)
 -- instance Integral a => Appendable [a] where
 -- 	toBS l = B.pack (fmap fromIntegral l)
-
-------------------------------------------------------------------------------
--- Helper functions
-------------------------------------------------------------------------------
-
--- | Add the BlueTooth length header in front of a message
-btPack :: B.ByteString -> B.ByteString
-btPack msg = B.append (littleEndianInt (B.length msg)) msg
--- TODO: Checken ob korrekt, evtl. verwirft das frühe Konvertieren 
-
--- | Strip the BlueTooth length header from a message
-btUnPack :: Message -> Message
-btUnPack m = if assumedLength == (indicatedLength ws)
-		then B.drop 2 m
-		else error "Message length mismatch"
-	where ws = B.unpack m 
-	      assumedLength   = (B.length m) - 2
-	      indicatedLength (lsb:msb:msg) = ((fromIntegral msb) `shiftL` 8) + (fromIntegral lsb)
-
-------------------------------------------------------------------------------
--- Send and receive
-------------------------------------------------------------------------------
-
--- | Send a command to the NXT
-send :: Handle			-- ^ IO Handle
-	-> CommandMode		-- ^ The CommandMode
-	-> Message		-- ^ The Command to send, not including the Commandmode
-	-> IO ()
-send handle mode cmd = do
-	sendReceive handle mode False cmd
-	return ()
-
--- | Receive Data from the NXT
---
---   Works only with the bluetooth interface currently
---   (length header read and strippend from messages)
-receive :: Handle -> IO Message
-receive handle = do
-	hFlush handle
-	havinput <- hWaitForInput handle 1000 -- Wait for Input
-	btheader <- if havinput then B.hGet handle 2 else (error "No Input")
-	if 0 == B.length btheader
-		then return B.empty
-		else do msglength <- return (fromIntegral (int16FromWords (B.unpack btheader)))
-			if msglength == 0
-				then return B.empty
-				else B.hGet handle (msglength)
-
--- | Most Basic Communication function
---
---   Works only wth the bluetooth interface currently
---   (length header is added to/stripped from messages)
-sendReceive :: Handle		-- ^ IO Handle
-	-> CommandMode		-- ^ The CommandMode
-	-> Bool			-- ^ Indicate wether a reply is expected or not
-	-> Message		-- ^ The Command to send, not including the Commandmode
-	-> IO (Maybe Message)	-- ^ Just The reply or Nothing	
-sendReceive handle mode reply cmd = do
-	B.hPut handle message
-	-- putStrLn (debugByteString message)
-	hFlush handle
-	if reply
-		then do answer <- receive handle
-			return (Just answer)
-		else return Nothing
-	where message     = btPack cmdWithMode
-	      cmdWithMode = (commandType mode reply) `B.cons` cmd
-
--- | Helper function used to create IO Actions more easily from 
---   NXT Message composition functions
---   
---   For NXT Messages with 2 Arguments
-send2 :: CommandMode		-- ^ The commandMode to use
-	-> (a -> b -> Message)	-- ^ The NXT Message Function
-	-> Handle		-- ^ An IO Handle
-	-> a			-- ^ First argument to the NXT Message Function
-	-> b			-- ^ Second argument to the NXT Message Function
-	-> IO()
-send1 mode msg h = mapResult1 (send h mode) msg
-send2 mode msg h = mapResult2 (send h mode) msg 
-send3 mode msg h = mapResult3 (send h mode) msg 
-send4 mode msg h = mapResult4 (send h mode) msg 
-send5 mode msg h = mapResult5 (send h mode) msg 
-send6 mode msg h = mapResult6 (send h mode) msg 
-send7 mode msg h = mapResult7 (send h mode) msg
 
 ------------------------------------------------------------------------------
 -- Commands
