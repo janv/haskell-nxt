@@ -180,16 +180,48 @@ getbatterylevel h = do
 -- STOPSOUNDPLAYBACK
 stopsoundplaybackMsg :: Message
 stopsoundplaybackMsg = B.singleton 0x0C
-stopsoundplayback handle = send handle Direct stopsoundplaybackMsg
+stopsoundplayback = send0 Direct stopsoundplaybackMsg
 
 -- KEEPALIVE
 keepaliveMsg :: Message
 keepaliveMsg = B.singleton 0x0D
-keepalive handle = send handle Direct keepaliveMsg
+keepalive = send0 Direct keepaliveMsg
 -- TODO: Receive sleep time limit
 
 -- LSGETSTATUS
+lsgetstatusMsg :: InputPort -> Message
+lsgetstatusMsg port = "\x0E" +++ port
+lsgetstatus :: NXTHandle -> InputPort -> IO (Word8)
+lsgetstatus h port = do
+	reply <- sendReceive h Direct True (lsgetstatusMsg port)
+	case reply of
+		Nothing -> error "lsgetstatus: No Reply"
+		Just m  -> do let parts = segmentList (B.unpack m) [3,1]
+			      return (pickSegment parts 1)
+
 -- LSWRITE
+lswriteMsg :: InputPort
+	-> Message	-- ^ The message to send over I2C
+	-> Word8	-- ^ Rx data length
+	-> Message
+lswriteMsg port m rxl = "\x0F" +++ port +++ l +++ rxl +++ m
+	where l = if B.length m > 16
+		then error ("lswrite: Message too long " ++ (debugByteString m))
+		else B.length m
+lswrite = send3 Direct lswriteMsg
+
 -- LSREAD
+lsreadMsg :: InputPort -> Message
+lsreadMsg port = "\x10" +++ port
+lsread :: NXTHandle -> InputPort -> IO (Message)
+lsread h port = do
+	reply <- sendReceive h Direct True (lsreadMsg port)
+	case reply of
+		Nothing -> error "lsread: No Reply"
+		Just m  -> do let parts  = segmentList (B.unpack m) [3, 1, 16]
+			          len    = pickSegment parts 1
+			          answer = take len (parts !! 2)
+			      return (B.pack answer)
+
 -- GETCURRENTROGRAMME
 -- MESSAGEREAD

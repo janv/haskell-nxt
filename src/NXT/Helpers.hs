@@ -58,6 +58,7 @@ mapResult2 :: (c -> d)		-- ^ Mapping between the result types
 	-> (a -> b -> c)	-- ^ The original function
 	-> (a -> b -> d)	-- ^ The resulting function
 
+mapResult0 mapFun fun               = mapFun (fun)
 mapResult1 mapFun fun a             = mapFun (fun a)
 mapResult2 mapFun fun a b           = mapFun (fun a b)
 mapResult3 mapFun fun a b c         = mapFun (fun a b c)

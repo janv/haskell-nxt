@@ -102,6 +102,7 @@ sendReceive handle mode reply cmd = do
 -- Send Helpers
 ------------------------------------------------------------------------------
 
+send0 mode msg h = mapResult0 (send h mode) msg
 send1 mode msg h = mapResult1 (send h mode) msg
 -- | Helper function used to create IO Actions more easily from 
 --   NXT Message composition functions
