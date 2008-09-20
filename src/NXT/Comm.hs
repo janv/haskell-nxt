@@ -11,8 +11,9 @@ import NXT.Codes
 -- Comm Types
 ------------------------------------------------------------------------------
 
-data NXTBrick  = NXTBrick String
-type NXTHandle = Handle
+data NXTPort   = Bluetooth | USB deriving Eq
+data NXTBrick  = NXTBrick NXTPort String
+data NXTHandle = NXTHandle NXTPort Handle
 type Message   = B.ByteString
 
 ------------------------------------------------------------------------------
@@ -20,22 +21,19 @@ type Message   = B.ByteString
 ------------------------------------------------------------------------------
 
 nxtOpen :: NXTBrick -> IO (NXTHandle)
-nxtOpen (NXTBrick dev) = do
+nxtOpen (NXTBrick port dev) = do
 	h <- openFile dev ReadWriteMode
 	hSetBuffering h NoBuffering
-	return h
+	return (NXTHandle port h)
 
 nxtClose :: NXTHandle -> IO ()
-nxtClose h = do
+nxtClose (NXTHandle _ h) = do
 	hWaitForInput h 500
 	hClose h
 
 ------------------------------------------------------------------------------
 -- Bluetooth Helpers
 ------------------------------------------------------------------------------
-
--- | enable/disable bluetooth
-bluetooth = True
 
 -- | Add the BlueTooth length header in front of a message
 btPack :: Message -> Message
@@ -53,7 +51,7 @@ btUnPack m = if B.length m >= 2 then B.drop 2 m else error ("btUnPack: Message t
 
 -- | Does not work with USB
 nxtRead :: NXTHandle -> IO (Message)
-nxtRead handle = do
+nxtRead (NXTHandle Bluetooth handle) = do
 	hFlush handle
 	havinput  <- hWaitForInput handle 1000 -- Wait for Input
 	btheader  <- if havinput then B.hGetNonBlocking handle 2 else (error "No Input") -- Could hang here if only 1 byte is ready
@@ -61,10 +59,11 @@ nxtRead handle = do
 	if msglength == 0
 		then return B.empty
 		else B.hGet handle (msglength)
+nxtRead (NXTHandle USB handle) = error "USB Read not implemented"
 
 nxtWrite :: NXTHandle -> Message -> IO ()
-nxtWrite h m = do
-	B.hPut h (if bluetooth then btPack m else m)
+nxtWrite (NXTHandle port h) m = do
+	B.hPut h (if port == Bluetooth then btPack m else m)
 	hFlush h
 
 ------------------------------------------------------------------------------

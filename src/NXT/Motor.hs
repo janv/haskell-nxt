@@ -1,5 +1,6 @@
 module NXT.Motor where
 
+import NXT.Comm
 import NXT.Commands
 import NXT.Codes
 import System.IO
@@ -8,7 +9,7 @@ import Data.Int
 import Data.Word
 
 -- | Change a motors brake setting
-setBrake :: Handle -> OutputPort -> Bool -> IO ()
+setBrake :: NXTHandle -> OutputPort -> Bool -> IO ()
 setBrake h port onoff = do
 	os <- getoutputstate h port
 	setoutputstate h port
@@ -20,7 +21,7 @@ setBrake h port onoff = do
 		(tachoLimit os)  -- evtl. tacholimit - blocktachocount
 	where modify l = if onoff then delete Brake l else l
 
-setRegulation :: Handle -> OutputPort -> RegulationMode -> IO ()
+setRegulation :: NXTHandle -> OutputPort -> RegulationMode -> IO ()
 setRegulation h port regMode = do
 	os <- getoutputstate h port
 	setoutputstate h port
@@ -36,7 +37,7 @@ setRegulation h port regMode = do
 		RegulationIdle -> delete Regulated l
 
 -- | Run a motor
-motorGo :: Handle -> OutputPort -> Int8 -> IO ()
+motorGo :: NXTHandle -> OutputPort -> Int8 -> IO ()
 motorGo h port speed = do
 	setoutputstate h port
 		speed
@@ -47,7 +48,7 @@ motorGo h port speed = do
 		0
 
 -- | Stop a Motor
-motorStop :: Handle -> OutputPort -> IO ()
+motorStop :: NXTHandle -> OutputPort -> IO ()
 motorStop h port = do
 	setoutputstate h port
 		0
@@ -58,7 +59,7 @@ motorStop h port = do
 		0
 
 -- | Turn a motor a set amount
-motorTurn :: Handle -> OutputPort
+motorTurn :: NXTHandle -> OutputPort
 	-> Int8		-- ^ Speed
 	-> Word32	-- ^ Degrees of rotation
 	-> IO ()

@@ -56,7 +56,7 @@ playtoneMsg :: Word16 -> Word16 -> Message
 playtoneMsg freq duration = "\x03" +++ freqWord  +++ durWord
 				where freqWord = littleEndianWord16 freq
 				      durWord  = littleEndianWord16 duration
-playtone :: Handle -> Word16 -> Word16 -> IO ()
+playtone :: NXTHandle -> Word16 -> Word16 -> IO ()
 playtone = send2 Direct playtoneMsg
 
 -- SETOUTPUTSTATE
@@ -81,7 +81,7 @@ setinputmode = send3 Direct setinputmodeMsg
 getoutputstateMsg :: OutputPort -> Message
 getoutputstateMsg port = "\x06" +++ port -- TODO Range 0-2
 
-getoutputstate :: Handle -> OutputPort -> IO (OutputState)
+getoutputstate :: NXTHandle -> OutputPort -> IO (OutputState)
 getoutputstate h port = do
 	reply <- sendReceive h Direct True (getoutputstateMsg port)
 	case reply of
@@ -119,7 +119,7 @@ os m = OutputState port power oms rm tr rs tl tc btc rc
 getinputvaluesMsg :: InputPort -> Message
 getinputvaluesMsg port = "\x07" +++ port
 
-getinputvalues :: Handle -> InputPort -> IO (InputValues)
+getinputvalues :: NXTHandle -> InputPort -> IO (InputValues)
 getinputvalues h port = do
 	reply <- sendReceive h Direct True (getinputvaluesMsg port)
 	case reply of
@@ -168,7 +168,7 @@ resetmotorposition = send2 Direct resetmotorpositionMsg
 -- GETBATTERYLEVEL
 getbatterylevelMsg :: Message
 getbatterylevelMsg = B.singleton 0x0B
-getbatterylevel :: Handle -> IO (Word16)
+getbatterylevel :: NXTHandle -> IO (Word16)
 getbatterylevel h = do
 	reply <- sendReceive h Direct True getbatterylevelMsg
 	case reply of

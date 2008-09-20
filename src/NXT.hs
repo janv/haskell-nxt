@@ -1,17 +1,17 @@
 module NXT where
 
+import NXT.Comm
 import NXT.Commands
 import NXT.Codes
 import NXT.Helpers
 import NXT.Motor
 import NXT.Sensor
-import System.IO
-import System.Posix
 import qualified Data.ByteString as B
 
+btBrick = NXTBrick Bluetooth "/dev/tty.NXT-DevB-1"
+
 testloop = do
-	h <- openFile "/dev/tty.NXT-DevB-1" ReadWriteMode
-	hSetBuffering h NoBuffering
+	h <- nxtOpen btBrick
 	-- B.hPut h (B.pack [6,0,128,3,244,1,244,1])
 	playtone h 500 500
 	-- setupDefaultSensors h
@@ -32,5 +32,4 @@ testloop = do
 	setoutputstate h MotorA 0 [Coast] RegulationIdle 0 RunStateIdle 0
 -}
 	-- hWaitForInput h 250
-	hFlush h
-	hClose h
+	nxtClose h
