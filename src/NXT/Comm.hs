@@ -44,34 +44,23 @@ btPack msg = B.append (littleEndianInt (B.length msg)) msg
 
 -- | Strip the BlueTooth length header from a message
 btUnPack :: Message -> Message
-btUnPack m = if assumedLength == (indicatedLength ws)
-		then B.drop 2 m
-		else error "Message length mismatch"
-	where ws = B.unpack m 
-	      assumedLength   = (B.length m) - 2
-	      indicatedLength (lsb:msb:msg) = ((fromIntegral msb) `shiftL` 8) + (fromIntegral lsb)
+btUnPack m = if B.length m >= 2 then B.drop 2 m else error ("btUnPack: Message too small " ++ (debugByteString m) )
 
 
 ------------------------------------------------------------------------------
 -- Basic Read/Write
 ------------------------------------------------------------------------------
 
-nxtRead :: NXTHandle -> Int -> IO (Message)
-nxtRead h n = do
-	haveinput <- hWaitForInput h 1000
-	if haveinput
-		then B.hGet h n
-		else (error "No Input")		-- TODO: Behavior different From nxtReadAll
-
-nxtReadAll :: NXTHandle -> IO (Message)
-nxtReadAll h = do
-	let rec = do c  <- B.hGet h 1
-	             cs <- nxtReadAll h
-	             return (if bluetooth then btUnPack (B.append c cs) else B.append c cs)
-	havinput <- hWaitForInput h 1000
-	if havinput
-		then rec
-		else return B.empty
+-- | Does not work with USB
+nxtRead :: NXTHandle -> IO (Message)
+nxtRead handle = do
+	hFlush handle
+	havinput  <- hWaitForInput handle 1000 -- Wait for Input
+	btheader  <- if havinput then B.hGetNonBlocking handle 2 else (error "No Input") -- Could hang here if only 1 byte is ready
+	msglength <- return (fromIntegral (int16FromWords (B.unpack btheader)))
+	if msglength == 0
+		then return B.empty
+		else B.hGet handle (msglength)
 
 nxtWrite :: NXTHandle -> Message -> IO ()
 nxtWrite h m = do
@@ -93,7 +82,7 @@ send handle mode cmd = do
 
 -- | Receive Data from the NXT
 receive :: NXTHandle -> IO Message
-receive handle = nxtReadAll handle
+receive handle = nxtRead handle
 
 -- | Most Basic Communication function
 sendReceive :: NXTHandle	-- ^ IO Handle
