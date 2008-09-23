@@ -14,8 +14,8 @@ testloop = do
 	h <- nxtOpen btBrick
 	-- B.hPut h (B.pack [6,0,128,3,244,1,244,1])
 	playtone h 500 500
-	-- setupDefaultSensors h
-	s <- getbatterylevel h
+	setupDefaultSensors h
+	s <- getDistance h
 	putStrLn (show s)
 	-- a <- B.hGet h 5
 	-- putStrLn (show (debugByteString a))

@@ -113,7 +113,7 @@ send2 :: CommandMode		-- ^ The commandMode to use
 	-> NXTHandle
 	-> a			-- ^ First argument to the NXT Message Function
 	-> b			-- ^ Second argument to the NXT Message Function
-	-> IO()
+	-> IO ()
 send2 mode msg h = mapResult2 (send h mode) msg 
 send3 mode msg h = mapResult3 (send h mode) msg 
 send4 mode msg h = mapResult4 (send h mode) msg 
