@@ -124,14 +124,14 @@ instance Enum SensorType where
 
 -- sensor mode
 data SensorMode =
-	  RawMode		-- ^ report scaled value equal to raw value
-	| BooleanMode		-- ^ report scaled value as 1 true or 0 false, false if raw value > 55% of total range, true if < 45%
-	| TransitionCntMode	-- ^ report scaled value as number of transitions between true and false
-	| PeriodCounterMode	-- ^ report scaled value as number of transitions from false to true, then back to false
-	| PctFullScaleMode	-- ^ report scaled value as % of full scale reading for configured sensor type
-	| CelsiusMode
-	| FahrenheitMode	
-	| AngleStepMode		-- ^ report scaled value as count of ticks on RCX-style rotation sensor
+	  RawMode		-- ^ report scaled value equal to raw value [0..1023]
+	| BooleanMode		-- ^ report scaled value as 1 true or 0 false, false if raw value > 55% of total range, true if < 45% [0,1]
+	| TransitionCntMode	-- ^ report scaled value as number of transitions between true and false [0..65535]
+	| PeriodCounterMode	-- ^ report scaled value as number of transitions from false to true, then back to false [0..65535]
+	| PctFullScaleMode	-- ^ report scaled value as % of full scale reading for configured sensor type [0,100]
+	| CelsiusMode		-- ^ readings in 10th of a degree Celsius [-200..700]
+	| FahrenheitMode	-- ^ readings in 10th of a degree Fahrenheit [-400..1580]
+	| AngleStepMode		-- ^ report scaled value as count of ticks on RCX-style rotation sensor [0..65535]
 	| SlopeMask
 	| ModeMask
 	deriving Show

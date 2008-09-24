@@ -1,3 +1,4 @@
+-- | High level motor commands
 module NXT.Motor where
 
 import NXT.Comm
@@ -21,6 +22,7 @@ setBrake h port onoff = do
 		(tachoLimit os)  -- evtl. tacholimit - blocktachocount
 	where modify l = if onoff then delete Brake l else l
 
+-- | Change a motors regulation setting
 setRegulation :: NXTHandle -> OutputPort -> RegulationMode -> IO ()
 setRegulation h port regMode = do
 	os <- getoutputstate h port
@@ -37,7 +39,10 @@ setRegulation h port regMode = do
 		RegulationIdle -> delete Regulated l
 
 -- | Run a motor
-motorGo :: NXTHandle -> OutputPort -> Int8 -> IO ()
+motorGo :: NXTHandle
+	-> OutputPort
+	-> Int8		-- ^ Speed [-100..100]
+	-> IO ()
 motorGo h port speed = do
 	setoutputstate h port
 		speed
@@ -60,7 +65,7 @@ motorStop h port = do
 
 -- | Turn a motor a set amount
 motorTurn :: NXTHandle -> OutputPort
-	-> Int8		-- ^ Speed
+	-> Int8		-- ^ Speed [-100..100]
 	-> Word32	-- ^ Degrees of rotation
 	-> IO ()
 motorTurn h port speed dist = do

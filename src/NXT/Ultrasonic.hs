@@ -1,3 +1,4 @@
+-- | Commands for the Ultrasonic I2C distance sensor
 module NXT.Ultrasonic where
 
 import NXT.Codes
@@ -6,6 +7,7 @@ import NXT.Comm
 import Data.Word
 import qualified Data.ByteString as B
 
+-- I2C device ID of the sensor
 i2c_dev = 0x02::Word8
 
 ------------------------------------------------------------------------------
@@ -14,7 +16,7 @@ i2c_dev = 0x02::Word8
 
 data I2CCommand = I2CC {
 	i2cmessage :: Message,	-- ^ I2C Address, followed by Commands
-	i2rx ::Word8		-- ^ RX length (Expected Return)
+	i2rx ::Word8		-- ^ RX length (expected return length)
 }
 
 -- first value is the i2c address, second value is the expected number of bytes returned
@@ -52,5 +54,8 @@ set_actual_zero                     = I2CC (B.singleton 0x50   ) 0
 set_actual_scale_factor             = I2CC (B.singleton 0x51   ) 0
 set_actual_scale_divisor            = I2CC (B.singleton 0x52   ) 0
 
+-- | Wrapper around 'NXT.Commands.lswrite' that accepts a 'I2CCommand' instead
+--   of seperate arguments for command and Rx. Also prepends the correct I2C
+--   device ID to the message.
 i2cwrite :: NXTHandle -> InputPort -> I2CCommand -> IO ()
 i2cwrite h port (I2CC msg rx) = lswrite h port (i2c_dev +++ msg) rx

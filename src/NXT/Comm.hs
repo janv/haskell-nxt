@@ -1,4 +1,28 @@
-module NXT.Comm where
+-- | Lowlevel communication
+module NXT.Comm (
+	-- * Comm types
+	NXTPort(..),
+	NXTBrick(..),
+	NXTHandle,
+	Message,
+	-- * Open/Close
+	nxtOpen,
+	nxtClose,
+	-- * Basic Read/Write
+	nxtRead,
+	nxtWrite,
+	-- * Communication
+	send,
+	sendReceive,
+	send0,
+	send1,
+	send2,
+	send3,
+	send4,
+	send5,
+	send6,
+	send7
+) where
 
 import System.IO
 import System.Posix
@@ -12,8 +36,11 @@ import NXT.Codes
 ------------------------------------------------------------------------------
 
 data NXTPort   = Bluetooth | USB deriving Eq
+-- | The string should contain the path to a character-device file
 data NXTBrick  = NXTBrick NXTPort String
+-- | IO Handle to a NXT Brick
 data NXTHandle = NXTHandle NXTPort Handle
+-- | Messages sent to/received from the brick
 type Message   = B.ByteString
 
 ------------------------------------------------------------------------------
@@ -49,7 +76,8 @@ btUnPack m = if B.length m >= 2 then B.drop 2 m else error ("btUnPack: Message t
 -- Basic Read/Write
 ------------------------------------------------------------------------------
 
--- | Does not work with USB
+-- | Read data from the brick
+--   Does not work with USB yet
 nxtRead :: NXTHandle -> IO (Message)
 nxtRead (NXTHandle Bluetooth handle) = do
 	hFlush handle
@@ -61,6 +89,7 @@ nxtRead (NXTHandle Bluetooth handle) = do
 		else B.hGet handle (msglength)
 nxtRead (NXTHandle USB handle) = error "USB Read not implemented"
 
+-- | Write data to the brick
 nxtWrite :: NXTHandle -> Message -> IO ()
 nxtWrite (NXTHandle port h) m = do
 	B.hPut h (if port == Bluetooth then btPack m else m)
@@ -88,7 +117,7 @@ sendReceive :: NXTHandle	-- ^ IO Handle
 	-> CommandMode		-- ^ The CommandMode
 	-> Bool			-- ^ Indicate wether a reply is expected or not
 	-> Message		-- ^ The Command to send, not including the Commandmode
-	-> IO (Maybe Message)	-- ^ Just The reply or Nothing	
+	-> IO (Maybe Message)	-- ^ Just the reply or Nothing	
 sendReceive handle mode reply cmd = do
 	nxtWrite handle message
 	-- putStrLn (debugByteString message)
@@ -107,7 +136,8 @@ send1 mode msg h = mapResult1 (send h mode) msg
 -- | Helper function used to create IO Actions more easily from 
 --   NXT Message composition functions
 --   
---   For NXT Messages with 2 Arguments
+--   For NXT Messages with 2 Arguments. Other versions for different numbers
+--   of arguments exist. See NXT.Commands for usage examples.
 send2 :: CommandMode		-- ^ The commandMode to use
 	-> (a -> b -> Message)	-- ^ The NXT Message Function
 	-> NXTHandle

@@ -1,5 +1,46 @@
 {-# OPTIONS_GHC -XFlexibleInstances #-}
-module NXT.Commands where
+module NXT.Commands (
+	-- * Appendable class
+	Appendable,
+	(+++),
+	-- * Commands
+	playtone,
+	setoutputstate,
+	setinputmode,
+	getoutputstate,
+	getinputvalues,
+	resetmotorposition,
+	getbatterylevel,
+	keepalive,
+	lsgetstatus,
+	lswrite,
+	lsread,
+	-- * Types
+	-- ** Output
+	OutputState,
+		outputPort,
+		powerSetPoint,
+		outputMode,     
+		regulationMode, 
+		turnRatio,      
+		runState,       
+		tachoLimit,     
+		tachoCount,     
+		blockTachoCount,
+		rotationCount,  
+	-- ** Input
+	InputValues,
+		port            ,
+		valid           ,
+                calibrated      ,
+                sensorType      ,
+                sensorMode      ,
+                raw             ,
+                normalized      ,
+                scaled          ,
+                calibrated_value
+
+) where
 
 import NXT.Comm
 import NXT.Codes
@@ -19,6 +60,7 @@ import qualified Data.ByteString as B
 class Appendable a where
 	toBS :: a -> B.ByteString
 
+-- | Combines two elements to a bytestring
 (+++) :: (Appendable a, Appendable b) => a -> b -> B.ByteString
 x +++ y = B.append (toBS x) (toBS y)
 	
@@ -38,10 +80,6 @@ instance Appendable InputPort      where toBS p = B.singleton (fromIntegral (fro
 instance Appendable SensorType     where toBS p = B.singleton (fromIntegral (fromEnum p))
 instance Appendable SensorMode     where toBS p = B.singleton (fromIntegral (fromEnum p))
 instance Appendable Bool           where toBS p = B.singleton (if p then (0x01::Word8) else (0x00::Word8))
--- instance (Enum a) => Appendable a where
--- 	toBS x = B.singleton (fromEnum x)
--- instance Integral a => Appendable [a] where
--- 	toBS l = B.pack (fmap fromIntegral l)
 
 ------------------------------------------------------------------------------
 -- Commands
@@ -56,38 +94,42 @@ playtoneMsg :: Word16 -> Word16 -> Message
 playtoneMsg freq duration = "\x03" +++ freqWord  +++ durWord
 				where freqWord = littleEndianWord16 freq
 				      durWord  = littleEndianWord16 duration
-playtone :: NXTHandle -> Word16 -> Word16 -> IO ()
+playtone :: NXTHandle
+	-> Word16	-- ^ Frequency (200 - 14.000 Hz)
+	-> Word16	-- ^ Duration
+	-> IO ()
 playtone = send2 Direct playtoneMsg
 
 -- SETOUTPUTSTATE
-setoutputstateMsg :: OutputPort -- TODO: Version die OutputState als Parameter nimmt
+setoutputstate :: NXTHandle
+	-> OutputPort 		-- TODO: Version die OutputState als Parameter nimmt
 	-> Int8			-- ^ Power -100 - 100
-	-> [OutputMode]
-	-> RegulationMode
+	-> [OutputMode]		-- ^ Combine some of the Outputmodes here
+	-> RegulationMode	-- ^ For this to be effective, 'Regulated' has to be in the OutputMode list
 	-> Int8			-- ^ Turn Ratio SBYTE (-100 - 100)
-	-> RunState		-- UBYTE
+	-> RunState
 	-> Word32		-- ^ Tacho Limit (ULONG 0:Run Forever)
-	-> Message
+	-> IO ()
+setoutputstate = send7 Direct setoutputstateMsg
 setoutputstateMsg po pw oms rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++ tr +++ rs +++ (littleEndianWord32 tl)
 	where om = bitfieldFromEnum oms
-setoutputstate = send7 Direct setoutputstateMsg
 
 -- SETINPUTMODE
-setinputmodeMsg :: InputPort -> SensorType -> SensorMode -> Message
-setinputmodeMsg port sensortype mode = "\x05" +++ port +++ sensortype +++ mode
+-- | Set the input mode for one of the sensor ports
+setinputmode :: NXTHandle -> InputPort -> SensorType -> SensorMode -> IO ()
 setinputmode = send3 Direct setinputmodeMsg
+setinputmodeMsg port sensortype mode = "\x05" +++ port +++ sensortype +++ mode
 
 -- GETOUTPUTSTATE
-getoutputstateMsg :: OutputPort -> Message
 getoutputstateMsg port = "\x06" +++ port -- TODO Range 0-2
-
+-- | Retrieve the outputstate for a given motor port
 getoutputstate :: NXTHandle -> OutputPort -> IO (OutputState)
 getoutputstate h port = do
 	reply <- sendReceive h Direct True (getoutputstateMsg port)
 	case reply of
 		Nothing -> error "Getting Outputstate: No Reply"
 		Just m  -> return (os m)
-	
+-- | Please refer to the documentation of 'setoutputstate' for an explanation of the members
 data OutputState =
 	OutputState {
 		outputPort      :: OutputPort,
@@ -129,13 +171,15 @@ getinputvalues h port = do
 data InputValues =
 	InputValues {
 		port             :: InputPort,
-		valid            :: Bool,
+		valid            :: Bool,	-- ^ Indicates wether the data read might be invalid due to
+						--   unprocessed sensor changes.
 		calibrated       :: Bool,
 		sensorType       :: SensorType,
 		sensorMode       :: SensorMode,
-		raw              :: Word16,
-		normalized       :: Word16,
-		scaled           :: Int16,
+		raw              :: Word16,	-- ^ The Raw values as sent by the sensor
+		normalized       :: Word16,	-- ^ The sensors values normalized over the range 0..1023
+		scaled           :: Int16,	-- ^ Sensor values scaled according to the sensor.
+						--   See 'NXT.Codes.SensorMode' for a description of the ranges
 		calibrated_value :: Int16
 	} deriving Show
 iv :: Message -> InputValues
@@ -152,22 +196,26 @@ iv m = InputValues p v c st sm r n s cv
 	      cv = int16FromWords  (parts !! 9)
 
 -- RESETINPUTSCALEDVALUE
-resetinputscaledvalueMsg :: InputPort -> Message
-resetinputscaledvalueMsg port = "\x08" +++ port
+-- | Reset the scaled value on a input port.
+resetinputscaledvalue :: NXTHandle -> InputPort -> IO ()
 resetinputscaledvalue = send1 Direct resetinputscaledvalueMsg
+resetinputscaledvalueMsg port = "\x08" +++ port
 
 -- MESSAGEWRITE
 
 -- RESETMOTORPOSITION
-resetmotorpositionMsg :: OutputPort
-	-> Bool	-- ^ Relative? (True: relative to last movement, False: absolute position)
-	-> Message
-resetmotorpositionMsg port relative = "\x0A" +++ port +++ relative
+-- | Reset the position of an output motor port.
+resetmotorposition :: NXTHandle
+	-> OutputPort
+	-> Bool			-- ^ Relative? (True: relative to last movement, False: absolute position)
+	-> IO ()
 resetmotorposition = send2 Direct resetmotorpositionMsg
+resetmotorpositionMsg port relative = "\x0A" +++ port +++ relative
 
 -- GETBATTERYLEVEL
 getbatterylevelMsg :: Message
 getbatterylevelMsg = B.singleton 0x0B
+-- | Read the bricks battery level (voltage in millivolts)
 getbatterylevel :: NXTHandle -> IO (Word16)
 getbatterylevel h = do
 	reply <- sendReceive h Direct True getbatterylevelMsg
@@ -185,12 +233,15 @@ stopsoundplayback = send0 Direct stopsoundplaybackMsg
 -- KEEPALIVE
 keepaliveMsg :: Message
 keepaliveMsg = B.singleton 0x0D
+-- | Prevent the NXT from going to sleep
+keepalive :: NXTHandle -> IO ()
 keepalive = send0 Direct keepaliveMsg
 -- TODO: Receive sleep time limit
 
 -- LSGETSTATUS
 lsgetstatusMsg :: InputPort -> Message
 lsgetstatusMsg port = "\x0E" +++ port
+-- | Count the available bytes to read on a lowspeed (I2C) port
 lsgetstatus :: NXTHandle -> InputPort -> IO (Word8)
 lsgetstatus h port = do
 	reply <- sendReceive h Direct True (lsgetstatusMsg port)
@@ -208,11 +259,18 @@ lswriteMsg port m rxl = "\x0F" +++ port +++ l +++ rxl +++ m
 	where l = if B.length m > 16
 		then error ("lswrite: Message too long " ++ (debugByteString m))
 		else B.length m
+-- | Write a command to a lowspeed communication port (I2C)
+lswrite :: NXTHandle
+	-> InputPort
+	-> Message	-- ^ The messge to send over I2C
+	-> Word8	-- ^ Rx datalength (expected return length)
+	-> IO ()
 lswrite = send3 Direct lswriteMsg
 
 -- LSREAD
 lsreadMsg :: InputPort -> Message
 lsreadMsg port = "\x10" +++ port
+-- | Read a reply from a lowspeed communication port (I2C)
 lsread :: NXTHandle -> InputPort -> IO (Message)
 lsread h port = do
 	reply <- sendReceive h Direct True (lsreadMsg port)
