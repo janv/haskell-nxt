@@ -8,6 +8,9 @@ module NXT.Comm (
 	-- * Open/Close
 	nxtOpen,
 	nxtClose,
+	-- * Time
+	nxtInitTime,
+	nxtUpdateTime,
 	-- * Basic Read/Write
 	nxtRead,
 	nxtWrite,
@@ -60,6 +63,27 @@ nxtClose :: NXTHandle -> IO ()
 nxtClose (NXTHandle _ h _) = do
 	hWaitForInput h 500
 	hClose h
+
+------------------------------------------------------------------------------
+-- Timer Functions
+------------------------------------------------------------------------------
+
+-- | Initialize the timestamp of a NXTHandle with the current time
+nxtInitTime :: NXTHandle -> IO ()
+nxtInitTime (NXTHandle _ _ t) = do
+	now <- getCurrentTime
+	tryPutMVar t now
+	return ()
+
+-- | Update the timestamp of a NXTHandle with the current time and return
+--   the difference between the old and the new timestanp in milliseconds
+nxtUpdateTime :: NXTHandle -> IO (Double)
+nxtUpdateTime (NXTHandle _ _ t) = do
+	time_then <- takeMVar t
+	time_now  <- getCurrentTime
+	putMVar t time_now
+	return (milliDiff (diffUTCTime time_now time_then))
+	where milliDiff td = fromIntegral (truncate (td * 1000))
 
 ------------------------------------------------------------------------------
 -- Bluetooth Helpers
