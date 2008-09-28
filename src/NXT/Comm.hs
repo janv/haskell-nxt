@@ -27,7 +27,9 @@ module NXT.Comm (
 import System.IO
 import System.Posix
 import Data.Bits
+import Control.Concurrent.MVar
 import qualified Data.ByteString as B
+import Data.Time.Clock
 import NXT.Helpers
 import NXT.Codes
 
@@ -39,7 +41,7 @@ data NXTPort   = Bluetooth | USB deriving Eq
 -- | The string should contain the path to a character-device file
 data NXTBrick  = NXTBrick NXTPort String
 -- | IO Handle to a NXT Brick
-data NXTHandle = NXTHandle NXTPort Handle
+data NXTHandle = NXTHandle NXTPort Handle (MVar UTCTime)
 -- | Messages sent to/received from the brick
 type Message   = B.ByteString
 
@@ -50,11 +52,12 @@ type Message   = B.ByteString
 nxtOpen :: NXTBrick -> IO (NXTHandle)
 nxtOpen (NXTBrick port dev) = do
 	h <- openFile dev ReadWriteMode
+	time <- newEmptyMVar
 	hSetBuffering h NoBuffering
-	return (NXTHandle port h)
+	return (NXTHandle port h time)
 
 nxtClose :: NXTHandle -> IO ()
-nxtClose (NXTHandle _ h) = do
+nxtClose (NXTHandle _ h _) = do
 	hWaitForInput h 500
 	hClose h
 
@@ -79,7 +82,7 @@ btUnPack m = if B.length m >= 2 then B.drop 2 m else error ("btUnPack: Message t
 -- | Read data from the brick
 --   Does not work with USB yet
 nxtRead :: NXTHandle -> IO (Message)
-nxtRead (NXTHandle Bluetooth handle) = do
+nxtRead (NXTHandle Bluetooth handle _) = do
 	hFlush handle
 	havinput  <- hWaitForInput handle 1000 -- Wait for Input
 	btheader  <- if havinput then B.hGetNonBlocking handle 2 else (error "No Input") -- Could hang here if only 1 byte is ready
@@ -87,11 +90,11 @@ nxtRead (NXTHandle Bluetooth handle) = do
 	if msglength == 0
 		then return B.empty
 		else B.hGet handle (msglength)
-nxtRead (NXTHandle USB handle) = error "USB Read not implemented"
+nxtRead (NXTHandle USB handle _) = error "USB Read not implemented"
 
 -- | Write data to the brick
 nxtWrite :: NXTHandle -> Message -> IO ()
-nxtWrite (NXTHandle port h) m = do
+nxtWrite (NXTHandle port h _) m = do
 	B.hPut h (if port == Bluetooth then btPack m else m)
 	hFlush h
 
