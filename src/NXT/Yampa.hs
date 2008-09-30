@@ -1,8 +1,5 @@
 -- | Interface functions to Yampas reactimate action
 module NXT.Yampa (
-	-- * Basic Types
-	NXTInput,
-	NXTOutput,
 	-- * Reactimate function generators
 	mkInit,
 	mkSense,
@@ -11,6 +8,7 @@ module NXT.Yampa (
 ) where
 
 import Data.Word
+import Data.Int
 import NXT.Codes
 import NXT.Comm
 import NXT.Commands
@@ -34,7 +32,21 @@ data NXTInput = NXTInput {
 }
 
 -- | Output to the Brick, in the Form of a list of messages to be sent
-type NXTOutput = [Message]
+data NXTOutput = NXTOutput {
+	driveMode   :: NXTDriveMode,
+	motorCSpeed :: Int8
+}
+
+data NXTDriveMode =
+      DriveStop
+    | DriveDiff {
+	  powerLeft  :: Int8,
+	  powerRight :: Int8
+      }
+    | DriveTR {
+	  power     :: Int8,
+	  turnRatio :: Int8
+      }
 
 ------------------------------------------------------------------------------
 -- Reactimate functions
@@ -63,18 +75,21 @@ mkSense h _ = do
 
 -- | Make a Yampa-compatible actuate-function by currying the NXTHandle parameter
 mkActuate:: NXTHandle -> Bool -> NXTOutput -> IO (Bool)
-mkActuate h _ nxto = do
-	if nxto == []
-		then return True
-		else do
-			let sendMessages []     = return ()
-			    sendMessages (m:ms) = do
-				send h Direct m
-				sendMessages ms
-				return ()
-			sendMessages nxto
-			return False
-
+mkActuate h _ (NXTOutput driveMode motorCSpeed) = do
+	case driveMode of
+		DriveStop       -> stopmotors
+		DriveDiff pl pr -> drivediff pl pr
+		DriveTR pw tr   -> drivetr   pw tr
+	setoutputstate h MotorC motorCSpeed [MotorOn, Regulated, Brake] MotorSpeed 0 motorCState 0
+	return False
+	where
+	motorCState     = if motorCSpeed == 0 then RunStateIdle else Running
+	stopmotors      = (setoutputstate h MotorA  0 [MotorOn, Regulated, Brake] MotorSpeed  0 RunStateIdle 0) >>
+		          (setoutputstate h MotorB  0 [MotorOn, Regulated, Brake] MotorSpeed  0 RunStateIdle 0)
+	drivediff pl pr = (setoutputstate h MotorA pl [MotorOn, Regulated, Brake] MotorSpeed  0 Running      0) >>
+			  (setoutputstate h MotorB pr [MotorOn, Regulated, Brake] MotorSpeed  0 Running      0)
+	drivetr   pw tr = (setoutputstate h MotorA pw [MotorOn, Regulated, Brake] MotorSync  tr Running      0) >>
+			  (setoutputstate h MotorB pw [MotorOn, Regulated, Brake] MotorSync  tr Running      0)
 ------------------------------------------------------------------------------
 -- Signal Transformer
 ------------------------------------------------------------------------------
@@ -96,27 +111,7 @@ motorOut :: SF Bool Bool
 motorOut = arr id
 
 nxtMotorOut :: SF Bool NXTOutput
-nxtMotorOut = arr (\b -> if b then
-		[setoutputstateMsg
-			MotorA
-			50
-			[MotorOn, Regulated]
-			MotorSpeed
-			0
-			Running
-			0
-		]
-	else
-		[setoutputstateMsg
-			MotorA
-			0
-			[Coast]
-			RegulationIdle
-			0
-			RunStateIdle
-			0
-		]
-	)
+nxtMotorOut = arr (\b -> if b then NXTOutput (DriveDiff 50 50) 0 else NXTOutput DriveStop 0 )
 
 nxtButtonState :: SF NXTInput Bool
 nxtButtonState = arr (\i -> switchInput i)
