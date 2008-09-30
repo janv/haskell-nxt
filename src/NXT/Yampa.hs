@@ -6,7 +6,8 @@ module NXT.Yampa (
 	-- * Reactimate function generators
 	mkInit,
 	mkSense,
-	mkActuate
+	mkActuate,
+	nxtSF
 ) where
 
 import Data.Word
@@ -70,10 +71,9 @@ mkActuate h _ nxto = do
 -- Signal Transformer
 ------------------------------------------------------------------------------
 
--- nxtSF :: SF NXTInput NXTOutput
--- nxtSF = arr nxtSFFun
--- 
--- nxtSFFun :: NXTInput -> NXTOutput
+nxtSF :: SF NXTInput NXTOutput
+nxtSF = nxtButtonState >>> motorOut >>> nxtMotorOut
+
 
 {- 
   Event generieren wenn Knopf gedrückt wird
@@ -82,13 +82,42 @@ mkActuate h _ nxto = do
   Beides kombinieren zu Event für Motor 1 an, Motor 1 aus
 -}
 
+-- | Based on a boolean input (e.g. from a switch), decide wether to turn on a
+--   motor or not
 motorOut :: SF Bool Bool
 motorOut = arr id
+
+nxtMotorOut :: SF Bool NXTOutput
+nxtMotorOut = arr (\b -> if b then
+		[setoutputstateMsg
+			MotorA
+			50
+			[MotorOn, Regulated]
+			MotorSpeed
+			0
+			Running
+			0
+		]
+	else
+		[setoutputstateMsg
+			MotorA
+			0
+			[Coast]
+			RegulationIdle
+			0
+			RunStateIdle
+			0
+		]
+	)
+
+nxtButtonState :: SF NXTInput Bool
+nxtButtonState = arr (\((b, _, _, _), (_, _, _)) -> b)
 
 ------------------------------------------------------------------------------
 -- Helper
 ------------------------------------------------------------------------------
 
+-- | Get NXT input from a NXTHandle
 getNXTInput :: NXTHandle -> IO (NXTInput)
 getNXTInput h = do
 	inp1 <- getSwitch   h

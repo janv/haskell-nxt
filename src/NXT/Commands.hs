@@ -6,6 +6,7 @@ module NXT.Commands (
 	-- * Commands
 	playtone,
 	setoutputstate,
+	setoutputstateMsg, -- TODO remove again, only here for testing purposes in Yampa.hs
 	setinputmode,
 	getoutputstate,
 	getinputvalues,
@@ -111,6 +112,7 @@ setoutputstate :: NXTHandle
 	-> Word32		-- ^ Tacho Limit (ULONG 0:Run Forever)
 	-> IO ()
 setoutputstate = send7 Direct setoutputstateMsg
+setoutputstateMsg :: OutputPort -> Int8 -> [OutputMode] -> RegulationMode -> Int8 -> RunState -> Word32 -> Message
 setoutputstateMsg po pw oms rm tr rs tl = "\x04" +++ po +++ pw +++ om +++ rm +++ tr +++ rs +++ (littleEndianWord32 tl)
 	where om = bitfieldFromEnum oms
 
