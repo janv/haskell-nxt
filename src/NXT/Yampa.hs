@@ -23,7 +23,15 @@ import FRP.Yampa
 ------------------------------------------------------------------------------
 
 -- | Input from the brick, four inputValues, one for each port
-type NXTInput = ((Bool, Float, Float, Word8), (OutputState, OutputState, OutputState))
+data NXTInput = NXTInput {
+	switchInput   :: Bool,
+	soundInput    :: Float,
+	lightInput    :: Float,
+	distanceInput :: Word8,
+	motorAState   :: OutputState,
+	motorBState   :: OutputState,
+	motorCState   :: OutputState
+}
 
 -- | Output to the Brick, in the Form of a list of messages to be sent
 type NXTOutput = [Message]
@@ -111,7 +119,7 @@ nxtMotorOut = arr (\b -> if b then
 	)
 
 nxtButtonState :: SF NXTInput Bool
-nxtButtonState = arr (\((b, _, _, _), (_, _, _)) -> b)
+nxtButtonState = arr (\i -> switchInput i)
 
 ------------------------------------------------------------------------------
 -- Helper
@@ -127,4 +135,4 @@ getNXTInput h = do
 	motor1 <- getoutputstate h MotorA
 	motor2 <- getoutputstate h MotorB
 	motor3 <- getoutputstate h MotorC
-	return ((inp1, inp2, inp3, inp4), (motor1, motor2, motor3))
+	return (NXTInput inp1 inp2 inp3 inp4 motor1 motor2 motor3)
