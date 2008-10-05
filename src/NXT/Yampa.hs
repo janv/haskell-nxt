@@ -29,13 +29,13 @@ data NXTInput = NXTInput {
 	motorAState   :: OutputState,
 	motorBState   :: OutputState,
 	motorCState   :: OutputState
-}
+} deriving Show
 
 -- | Output to the Brick, in the Form of a list of messages to be sent
 data NXTOutput = NXTOutput {
 	driveMode   :: NXTDriveMode,
 	motorCSpeed :: Int8
-}
+} deriving Show
 
 data NXTDriveMode =
       DriveStop
@@ -46,7 +46,7 @@ data NXTDriveMode =
     | DriveTR {
 	  power     :: Int8,
 	  turnRatio :: Int8
-      }
+      } deriving Show
 
 ------------------------------------------------------------------------------
 -- Reactimate functions
