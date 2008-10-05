@@ -107,9 +107,7 @@ btUnPack m = if B.length m >= 2 then B.drop 2 m else error ("btUnPack: Message t
 --   Does not work with USB yet
 nxtRead :: NXTHandle -> IO (Message)
 nxtRead (NXTHandle Bluetooth handle _) = do
-	hFlush handle
-	havinput  <- hWaitForInput handle 1000 -- Wait for Input
-	btheader  <- if havinput then B.hGetNonBlocking handle 2 else (error "No Input") -- Could hang here if only 1 byte is ready
+	btheader  <- B.hGet handle 2
 	msglength <- return (fromIntegral (int16FromWords (B.unpack btheader)))
 	if msglength == 0
 		then return B.empty

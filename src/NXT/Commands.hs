@@ -33,13 +33,13 @@ module NXT.Commands (
 	InputValues,
 		port            ,
 		valid           ,
-                calibrated      ,
-                sensorType      ,
-                sensorMode      ,
-                raw             ,
-                normalized      ,
-                scaled          ,
-                calibrated_value
+		calibrated      ,
+		sensorType      ,
+		sensorMode      ,
+		raw             ,
+		normalized      ,
+		scaled          ,
+		calibrated_value
 
 ) where
 
