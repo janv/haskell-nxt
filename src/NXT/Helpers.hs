@@ -57,7 +57,8 @@ debugByteString b = B.foldr mapfun [] b
 			      upperFour w = fromIntegral w `shiftR` 4
 			      lowerFour w = fromIntegral w .&. 0xF
 			      charToHex c = toUpper (intToDigit c)
-			      mapfun w str = "0x" ++ (wordToHex w) ++ "(" ++ (show w) ++ ") " ++ str
+			      mapfun w str = "0x" ++ (wordToHex w) ++ "(" ++ (pad w) ++ (show w) ++ ") " ++ str
+			      pad i = if i < 10 then "  " else (if i < 100 then " " else "")
 
 -- | Helper that changes the result type of a function
 
