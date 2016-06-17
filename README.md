@@ -108,6 +108,5 @@ Credits
    were missing from the Lego docs
    
 
-Copyright (c) 2008 [Jan Varwig], released under the MIT license
-<http://jan.varwig.org/>
+Copyright (c) 2008 [Jan Varwig](http://jan.varwig.org/), released under the MIT license
 Original and official version at <http://github.com/janv/haskell-nxt>
